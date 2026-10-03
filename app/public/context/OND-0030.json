@@ -1,0 +1,19 @@
+{
+ "plotId": "OND-0030",
+ "builtAt": "2026-10-03T21:38:57Z",
+ "source": {
+  "weather": "NASA POWER daily point API (community AG), PRECTOTCORR / T2M / RH2M",
+  "soil": "ISRIC SoilGrids v2.0, phh2o 0-5cm mean"
+ },
+ "rain_30d_mm": 68.0,
+ "rain_30d_normal_mm": 86.1,
+ "rain_90d_mm": 131.1,
+ "rain_90d_normal_mm": 262.9,
+ "temp_mean_30d_c": 15.4,
+ "rh_mean_30d_pct": 80.1,
+ "soil_ph": 6.1,
+ "weather_data_end": "2026-09-30",
+ "normal": "mean of the same calendar window over the previous 10 years",
+ "synthetic_location": true,
+ "caveat": "Coarse global grid estimates, not measurements from this plot. Plot location is synthetic."
+}

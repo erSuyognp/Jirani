@@ -366,7 +366,7 @@ function CardView({ lang, r, settings, pack, saved, onSave, onDone }: {
             <li key={i} className={x.muted ? "muted" : ""}>{x.evidence}{x.confirm && <div className="small">↳ {T("to_confirm")} {x.confirm}</div>}</li>
           ))}
         </ol>
-        {c.contextNote && <div className="small">⚠️ {c.contextNote}</div>}
+        {c.contextNote && <div className="small">⚠️ {c.contextNote}{packAge !== null && ` ${T("context_stale", { days: packAge })}`}</div>}
         {!c.contextNote && packAge !== null && <div className="small">🛰️ {T("context_age", { days: packAge })}</div>}
       </section>
       <section className={`slot next ${c.nextStepKey}`}>

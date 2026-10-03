@@ -70,6 +70,7 @@
   "sms_preview": "Ujumbe wa SMS",
   "latency": "Muda wa kukagua: ms {ms} kwa jani",
   "context_age": "Taarifa za hali ya hewa na udongo ziliandaliwa siku {days} zilizopita (makadirio ya jumla, si vipimo vya shamba hili).",
+  "context_stale": "(Data ina siku {days}. Omba chama kiisasishe.)",
   "done": "Maliza",
   "check_saved": "Imehifadhiwa kwenye historia na inasubiri kutumwa.",
 

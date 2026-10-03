@@ -12,7 +12,7 @@ Hackathon deadline: Sunday 4 Oct 2026, 08:00 US Central. Spec: `JIRANI_SPEC.md`.
 | M5 | SMS + Kiswahili audio | ✅ done | MMS-TTS clips 516 KB (CC-BY-NC, flagged); SMS ≤ 160 GSM-7 tested for every card. SW skipWaiting fix. |
 | M6 | Server, outbreak, dashboard, mock outbox | ✅ done | FastAPI + SQLite, draft alert → officer approve → outbox. |
 | M6b | Deploy app + server as two live HTTPS links (mock SMS only) | ✅ done (phone re-check by user) | App https://jirani-eosin.vercel.app · Dashboard https://jirani-coop.onrender.com |
-| M7 | Context pack + cause ranking | ⏳ next | Cause logic + 5 scenario tests already exist in the app; needs `build_context_pack.py` (NASA POWER, SoilGrids). |
+| M7 | Context pack + cause ranking | ✅ done (redeploy needed) | Real NASA POWER + SoilGrids packs for all 40 plots; ranked causes on the card. See below. |
 | M8 | README, DATA.md, EVIDENCE.md, final deploy, phone test | ⏳ | |
 
 ## M6b: deploy (mock SMS only)
@@ -60,6 +60,35 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
   `python scripts/simulate_outbreak.py --server https://jirani-coop.onrender.com` right before the dashboard scene
   so the phone's rust report tips the draft alert.
 - The test report from Claude's browser (OND-0017 B rust) is on the server now. Either leave it or let a restart clear it.
+
+## M7: context pack + cause ranking (2026-10-03)
+
+### Done
+- `scripts/build_context_pack.py` writes `app/public/context/<plotId>.json` for all 40 synthetic plots.
+  - Weather: NASA POWER daily point API (v2.10, community AG). It gives `PRECTOTCORR`, `T2M` and `RH2M` from Jan 2015 to the latest published day (data currently ends 2026-09-30, about a 3-day lag).
+    - Rain for the last 30 and 90 days is compared with the mean of the same calendar window over the previous 10 years.
+    - 30-day mean temperature and humidity are included.
+    - One grid cell covers the whole cooperative, so all plots share the weather numbers.
+  - Soil: ISRIC SoilGrids v2.0, `phh2o` 0–5 cm mean (pH × 10 → pH), queried per plot, throttled to about 5 per minute.
+  - Raw responses are cached in `scripts/cache/` (gitignored). The pack carries `synthetic_location: true` and the caveat.
+- **Real numbers for the demo plot OND-0017** (built 2026-10-03; synthetic location):
+  - 90-day rain 131.1 mm vs. normal 262.9 mm (≈ 50%). This fires the draft `dry_spell` cause (< 60%).
+  - 30-day rain 68.0 vs. 86.1 mm.
+  - 30-day mean temperature 15.4 °C and humidity 80.1%. 15.4 °C is below the draft 18–26 °C band, so there is no "warm and wet" note for rust.
+  - Soil pH 6.2, so there is no acidity cause. pH across the 40 plots is 6.0–6.2.
+- **Card check (dev app, OND-0017 pack):**
+  - Confident rust, sprayed = yes → disease (very high) › dry spell › sprayed recently › not covered.
+  - Healthy leaves → dry spell › not covered.
+  - Not sure → no disease line; dry spell shown as "Context only, not from the leaves".
+  - Pack age is shown on every card. A pack older than 30 days shows "context unavailable" plus its age.
+- Unit tests for the five spec scenarios (and two more) pass: app 26/26.
+- DATA.md rows added for NASA POWER and SoilGrids, including what they do not cover.
+
+### Not done / limits
+- Thresholds (60% / 40% of normal rain, pH < 5.0, 18–26 °C with RH ≥ 75% or above-normal rain) are **draft heuristics, not validated agronomy**.
+- Packs are bundled with the app, so a refresh means rebuilding the packs and redeploying the app. The spec's "built at sync time" is approximated by "built at deploy time".
+- `TODO: verify` the NASA POWER acknowledgement wording and the SoilGrids licence on their sites.
+- **The live app does not have the packs yet.** Commit and push so Vercel rebuilds.
 
 ## Open TODOs (cross-milestone)
 - `TODO: verify` BRACOL paper volume/article number (DATA.md); meaning of stress code 5.

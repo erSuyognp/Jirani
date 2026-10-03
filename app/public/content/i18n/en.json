@@ -70,6 +70,7 @@
   "sms_preview": "SMS text",
   "latency": "Inference: {ms} ms per leaf",
   "context_age": "Weather and soil data built {days} days ago (coarse estimates, not measured on this plot).",
+  "context_stale": "(Data is {days} days old. Ask the cooperative to update it.)",
   "done": "Done",
   "check_saved": "Saved to history and queued for sync.",
 
