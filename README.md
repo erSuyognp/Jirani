@@ -1,6 +1,8 @@
 # Jirani
 Offline AI leaf check for coffee farmers: diagnose, track, warn. Runs on the phone, no internet needed.
 
+**Live:** farmer app <https://jirani-eosin.vercel.app> · cooperative dashboard <https://jirani-coop.onrender.com> (demo data is synthetic)
+
 > Full README (architecture, results, limits) is written at milestone M8. This file currently holds the deploy steps.
 
 ## Deploy (two live links)

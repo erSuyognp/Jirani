@@ -11,7 +11,7 @@ Hackathon deadline: Sunday 4 Oct 2026, 08:00 US Central. Spec: `JIRANI_SPEC.md`.
 | M4 | Trend + history, heatmap | ✅ done | worse/same/better incl. same-day wording; CAM overlay. |
 | M5 | SMS + Kiswahili audio | ✅ done | MMS-TTS clips 516 KB (CC-BY-NC, flagged); SMS ≤ 160 GSM-7 tested for every card. SW skipWaiting fix. |
 | M6 | Server, outbreak, dashboard, mock outbox | ✅ done | FastAPI + SQLite, draft alert → officer approve → outbox. |
-| M6b | Deploy app + server as two live HTTPS links (mock SMS only) | 🟡 config done, **deploy pending** | See below. |
+| M6b | Deploy app + server as two live HTTPS links (mock SMS only) | ✅ done (phone re-check by user) | App https://jirani-eosin.vercel.app · Dashboard https://jirani-coop.onrender.com |
 | M7 | Context pack + cause ranking | ⏳ next | Cause logic + 5 scenario tests already exist in the app; needs `build_context_pack.py` (NASA POWER, SoilGrids). |
 | M8 | README, DATA.md, EVIDENCE.md, final deploy, phone test | ⏳ | |
 
@@ -40,12 +40,26 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Exact deploy steps: README → "Deploy".
 - Tests: server 15/15, app 26/26.
 
-### Deploy status
-- [ ] Server on Render (needs the user: Render dashboard → New + → Blueprint; no Render CLI here).
-- [ ] App on Vercel (Vercel CLI is logged in on this machine; deploy once the Render URL is known so
-      `VITE_API_URL` points at it).
-- [ ] `APP_ORIGIN` on Render set to the Vercel URL.
-- [ ] Acceptance: sync from the deployed app on a phone appears on the deployed dashboard.
+### Deploy status (2026-10-03)
+- [x] **Server on Render**: <https://jirani-coop.onrender.com> (deployed by the user). `/api/health` → 40 synthetic plots, `sms_provider: mock`.
+- [x] **App on Vercel**: <https://jirani-eosin.vercel.app> (deployed by the user). Bundle points at the Render URL; model,
+      ORT wasm/mjs, audio and content all served (wasm as `application/wasm`).
+- [x] **CORS**: `APP_ORIGIN` on Render had been entered with a trailing slash (`https://jirani-eosin.vercel.app/`), so every
+      browser preflight from the app was rejected (400). Fixed in code: the server now strips trailing slashes from
+      `APP_ORIGIN` (commit 6b17e48, with a test). After Render auto-redeployed, the preflight returns 200.
+- [x] **Acceptance (in Claude's in-app browser)**: opened the deployed app → setup OND-0017 → three BRACOL rust photos
+      (fetched from the authors' repo through the app's file input) → card "Kutu ya majani, Juu (99%), Juu sana"
+      (inference 66 / 33 / 114 ms) → Save → Sync showed the exact packet → Send → "1 zimetumwa ✓" → the deployed
+      dashboard shows `1 reports (0 synthetic)` and OND-0017 · B · rust · very high on the visit list.
+- [ ] **User**: repeat once from a real phone (open the app URL online, wait for "Offline ready ✓", do a check, Sync → Send),
+      then check the dashboard.
+
+### Filming notes
+- Render free tier sleeps when idle and wipes its disk on restart: open the dashboard about a minute before filming.
+  Reports from earlier sessions may be gone (the synthetic registry reseeds itself). Run
+  `python scripts/simulate_outbreak.py --server https://jirani-coop.onrender.com` right before the dashboard scene
+  so the phone's rust report tips the draft alert.
+- The test report from Claude's browser (OND-0017 B rust) is on the server now. Either leave it or let a restart clear it.
 
 ## Open TODOs (cross-milestone)
 - `TODO: verify` BRACOL paper volume/article number (DATA.md); meaning of stress code 5.
