@@ -90,7 +90,7 @@ exported ONNX models with onnxruntime, the same graph the app runs. Test set: 25
 - **Quantization:** full static int8 (weights + activations) collapsed accuracy to 9–28% on this MobileNetV3. Int8 *weights* alone are lossless, so that is what ships. The file is smaller, but inference is not faster.
 - **Calibration:** temperature T = 1.056. τ = 0.76 is the lowest threshold with ≥ 95% accuracy on answered validation leaves.
 - **Latency, desktop browser (WASM, 1 thread):** 33–114 ms per leaf.
-- **Latency, real phone:** `TODO: fill in` (Settings → "Show inference time", read off the card).
+- **Latency, real phone (Samsung Galaxy A14, Android app):** 82–204 ms per leaf (204 / 82 / 90 ms on one 3-leaf check; the first leaf includes warm-up).
 
 ## Run it
 
@@ -118,8 +118,7 @@ npm run build:android                  # vite build --mode android + cap sync an
 cd android && ./gradlew assembleDebug  # → app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
-For **Sync → Send** from the APK, the server must allow the app's WebView origin: add `https://localhost` to
-`APP_ORIGIN` (see Deploy → Connect them).
+Sync from the APK uses native HTTP (`CapacitorHttp`), so the server's `APP_ORIGIN` CORS list needs no change.
 
 ### Server
 ```bash
@@ -251,7 +250,7 @@ output `dist`, environment variable `VITE_API_URL`. `app/public/_headers` keeps 
 ### 3. Connect them (CORS)
 
 1. Render → `jirani-coop` → **Environment** → set `APP_ORIGIN` = your app URL, e.g. `https://jirani-xyz.vercel.app`
-   (comma-separate several origins if needed; add `https://localhost` for the Android app). **Save Changes**; Render restarts the service.
+   (comma-separate several origins if needed). **Save Changes**; Render restarts the service.
 2. On a phone, open the app URL once while online. Wait for **"Offline ready ✓"** on Home.
 3. Do a check, open **Sync**, press **Send**. The report appears on the dashboard.
 4. Optional: post the synthetic neighbours so the phone's report tips an alert:

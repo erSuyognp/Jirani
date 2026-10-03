@@ -115,6 +115,17 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
   - Server, new venv: `pip install -r server/requirements-dev.txt` → `pytest` 16/16 → uvicorn starts and seeds 40 plots → `simulate_outbreak.py --all` creates a draft alert → dashboard 200.
   - Training reproduction was not re-run from the clone (it needs the BRACOL download); the commands are the ones used for M0–M2.
 
+### Android app (2026-10-03)
+- Capacitor 8 wrapper in `app/android` (`npm run build:android`, then `gradlew assembleDebug`). Web assets, model, wasm, audio and context packs ship inside the APK, so it is offline-ready on first launch (no service worker).
+- Native share sheet for the audio file (`@capacitor/share` + `@capacitor/filesystem`). Sync uses `CapacitorHttp`, so the server's CORS list is unchanged.
+- World Bank-style theme: navy `#002244` with cyan `#009FDA` (web app too). Adaptive launcher icon and splash screen in the same colours. No World Bank logo or name.
+- Tested over adb on a Samsung Galaxy A14 (SM-A146B):
+  - setup → 3 sample rust leaves from the gallery → **Leaf rust, High (99%)**, with heatmaps
+  - share audio opens the share sheet (`jirani-matokeo.wav`)
+  - Save → Sync → Send → "1 sent ✓"; the report shows on the live dashboard
+  - 204 / 82 / 90 ms per leaf
+- Not tested on the APK: airplane mode, the camera button, the SMS link (no basic-phone number set), a "Not sure" photo.
+
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
   1. Open https://jirani-eosin.vercel.app online and wait for "Offline ready ✓".
@@ -122,12 +133,12 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
   3. Do a 3-leaf check, plus one bad photo → "Not sure".
   4. Open the SMS link, then play the audio.
   5. Airplane mode off → Sync → Send → see it on https://jirani-coop.onrender.com.
-- [ ] Note the phone's per-leaf inference times (Settings → show inference time) and replace `TODO: fill in` in README "Measured results".
+- [x] Real-phone per-leaf inference times in README (Galaxy A14, Android app).
+- [ ] Android app: airplane-mode check with the camera, a bad photo, and the SMS link with a basic-phone number set.
 - [ ] Resolve or drop the `TODO: verify` items in EVIDENCE.md and DATA.md before quoting them in the video.
 
 ## Open TODOs (cross-milestone)
 - `TODO: verify` BRACOL paper volume/article number (DATA.md); meaning of stress code 5.
 - Kiswahili text and audio need native speaker review; agronomy text needs agronomist review.
-- Real-phone latency numbers for README (Settings → show inference time).
 - Real SMS delivery to neighbours (needs a provider with carrier registration; out of scope).
 - Out-of-distribution refusal is weak on other crops' leaves (48% single image, 78% with the 3-leaf rule). State it in the video.

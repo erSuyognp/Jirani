@@ -1,5 +1,6 @@
 // Store-and-forward. Packets wait in IndexedDB until the user opens Sync and presses Send.
 // Packet carries no name, phone number, photo or device location: plot id + class only.
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { enqueue, markSynced, outbox, type Packet } from "../db/db";
 import type { Observation } from "../logic/types";
 
@@ -31,12 +32,13 @@ export async function send(serverUrl: string): Promise<{ ok: boolean; sent: numb
   const packets = await pending();
   if (!packets.length) return { ok: true, sent: 0 };
   try {
-    const r = await fetch(`${serverUrl.replace(/\/$/, "")}/api/reports`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(packets),
-    });
-    if (!r.ok) return { ok: false, sent: 0, error: `HTTP ${r.status}` };
+    const url = `${serverUrl.replace(/\/$/, "")}/api/reports`;
+    const headers = { "Content-Type": "application/json" };
+    // Android app: native HTTP, so the server's CORS list does not need the WebView origin.
+    const status = Capacitor.isNativePlatform()
+      ? (await CapacitorHttp.post({ url, headers, data: packets })).status
+      : (await fetch(url, { method: "POST", headers, body: JSON.stringify(packets) })).status;
+    if (status < 200 || status >= 300) return { ok: false, sent: 0, error: `HTTP ${status}` };
     await markSynced(packets.map((p) => p.id));
     return { ok: true, sent: packets.length };
   } catch (e) {
