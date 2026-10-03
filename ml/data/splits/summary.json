@@ -1,5 +1,6 @@
 {
-  "source": "BRACOL leaf dataset, authors' split (seed 150, fold 1)",
+  "source": "BRACOL leaf crops from github.com/esgario/lara2018 (same ids as Mendeley)",
+  "split": "stratified by stress, 70/15/15, seed 150",
   "stress_classes": [
     "healthy",
     "miner",
@@ -14,64 +15,81 @@
     "high",
     "very_high"
   ],
-  "rows_labelled": 1685,
-  "rows_missing_image": 343,
+  "rows_in_label_file": 1747,
+  "rows_excluded_code5": 62,
+  "rows_used": 1685,
   "splits": {
     "train": {
-      "n": 934,
+      "n": 1179,
       "stress": {
-        "healthy": 92,
-        "miner": 182,
-        "rust": 332,
-        "phoma": 238,
-        "cercospora": 90
+        "healthy": 190,
+        "miner": 271,
+        "rust": 372,
+        "phoma": 243,
+        "cercospora": 103
       },
       "severity": {
-        "healthy": 92,
-        "very_low": 565,
-        "low": 184,
-        "high": 60,
-        "very_high": 33
+        "healthy": 190,
+        "very_low": 640,
+        "low": 238,
+        "high": 73,
+        "very_high": 38
       }
     },
     "val": {
-      "n": 200,
+      "n": 253,
       "stress": {
-        "healthy": 27,
-        "miner": 31,
-        "rust": 69,
-        "phoma": 48,
-        "cercospora": 25
+        "healthy": 41,
+        "miner": 58,
+        "rust": 79,
+        "phoma": 53,
+        "cercospora": 22
       },
       "severity": {
-        "healthy": 27,
-        "very_low": 110,
-        "low": 49,
-        "high": 8,
-        "very_high": 6
+        "healthy": 41,
+        "very_low": 141,
+        "low": 52,
+        "high": 12,
+        "very_high": 7
       }
     },
     "test": {
-      "n": 208,
+      "n": 253,
       "stress": {
-        "healthy": 23,
-        "miner": 40,
-        "rust": 64,
-        "phoma": 60,
-        "cercospora": 21
+        "healthy": 41,
+        "miner": 58,
+        "rust": 80,
+        "phoma": 52,
+        "cercospora": 22
       },
       "severity": {
-        "healthy": 23,
-        "very_low": 118,
+        "healthy": 41,
+        "very_low": 143,
         "low": 42,
-        "high": 15,
-        "very_high": 10
+        "high": 16,
+        "very_high": 11
       }
+    }
+  },
+  "total": {
+    "stress": {
+      "healthy": 272,
+      "miner": 387,
+      "rust": 531,
+      "phoma": 348,
+      "cercospora": 147
+    },
+    "severity": {
+      "healthy": 272,
+      "very_low": 924,
+      "low": 332,
+      "high": 101,
+      "very_high": 56
     }
   },
   "stress_x_severity": {
     "healthy": {
-      "healthy": 142,
+      "healthy": 272,
       "very_low": 0,
       "low": 0,
       "high": 0,
@@ -79,34 +97,31 @@
     },
     "miner": {
       "healthy": 0,
-      "very_low": 195,
-      "low": 44,
-      "high": 14,
+      "very_low": 279,
+      "low": 84,
+      "high": 24,
       "very_high": 0
     },
     "rust": {
       "healthy": 0,
-      "very_low": 278,
-      "low": 117,
-      "high": 38,
-      "very_high": 32
+      "very_low": 313,
+      "low": 134,
+      "high": 45,
+      "very_high": 39
     },
     "phoma": {
       "healthy": 0,
-      "very_low": 202,
+      "very_low": 203,
       "low": 99,
-      "high": 29,
+      "high": 30,
       "very_high": 16
     },
     "cercospora": {
       "healthy": 0,
-      "very_low": 118,
+      "very_low": 129,
       "low": 15,
       "high": 2,
       "very_high": 1
     }
-  },
-  "image_sizes_sample50": {
-    "2048x1024": 50
   }
 }

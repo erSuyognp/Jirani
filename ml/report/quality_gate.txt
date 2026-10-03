@@ -1,0 +1,53 @@
+{
+ "thresholds": {
+  "lumaMin": 60.0,
+  "lumaMax": 235.0,
+  "clippedMaxFraction": 0.5,
+  "leafMinFraction": 0.08,
+  "blurMinLaplacianVar": 60.0
+ },
+ "clean_n": 1401,
+ "clean_pass_rate": 0.9978586723768736,
+ "bad": {
+  "blur_s3": {
+   "n": 200,
+   "rejected": 0.99,
+   "reasons": {
+    "blurry": 198,
+    "null": 2
+   }
+  },
+  "blur_s6": {
+   "n": 200,
+   "rejected": 1.0,
+   "reasons": {
+    "blurry": 200
+   }
+  },
+  "dark": {
+   "n": 200,
+   "rejected": 1.0,
+   "reasons": {
+    "dark": 200
+   }
+  },
+  "bright": {
+   "n": 200,
+   "rejected": 1.0,
+   "reasons": {
+    "bright": 200
+   }
+  },
+  "no_leaf": {
+   "n": 7,
+   "rejected": 0.42857142857142855,
+   "reasons": {
+    "dark": 1,
+    "no_leaf": 2,
+    "null": 4
+   }
+  }
+ }
+}
+lap percentiles clean: {1: 102.15898895263672, 5: 131.60301208496094, 50: 269.6896667480469, 95: 416.7835388183594, 99: 475.1611328125}
+lap blur_s3 median: 28.277376174926758

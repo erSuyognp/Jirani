@@ -1,0 +1,55 @@
+{
+  "fp32": {
+    "size_bytes": 3740412,
+    "stress_acc": 0.8893280632411067,
+    "severity_acc": 0.841897233201581
+  },
+  "attempts": [
+    {
+      "variant": "int8 per-tensor",
+      "path": "D:\\Jirani\\ml\\checkpoints\\onnx\\model.0.int8.onnx",
+      "size_bytes": 1126416,
+      "stress_acc": 0.09090909090909091,
+      "severity_acc": 0.07509881422924901,
+      "argmax_agreement_with_fp32": 0.12648221343873517,
+      "feature_corr_with_fp32": 0.027329585659683686
+    },
+    {
+      "variant": "int8 per-channel",
+      "path": "D:\\Jirani\\ml\\checkpoints\\onnx\\model.1.int8.onnx",
+      "size_bytes": 1244412,
+      "stress_acc": 0.2845849802371542,
+      "severity_acc": 0.38735177865612647,
+      "argmax_agreement_with_fp32": 0.3201581027667984,
+      "feature_corr_with_fp32": 0.14650817172941022
+    },
+    {
+      "variant": "int8 per-channel, heads fp32",
+      "path": "D:\\Jirani\\ml\\checkpoints\\onnx\\model.2.int8.onnx",
+      "size_bytes": 1258984,
+      "stress_acc": 0.2766798418972332,
+      "severity_acc": 0.38735177865612647,
+      "argmax_agreement_with_fp32": 0.31225296442687744,
+      "feature_corr_with_fp32": 0.14650817172941022
+    },
+    {
+      "variant": "int8 weight-only per-channel, fp32 activations",
+      "path": "D:\\Jirani\\ml\\checkpoints\\onnx\\model.3.int8.onnx",
+      "size_bytes": 1044066,
+      "stress_acc": 0.9011857707509882,
+      "severity_acc": 0.8023715415019763,
+      "argmax_agreement_with_fp32": 0.9881422924901185,
+      "feature_corr_with_fp32": 0.9746115818562916
+    }
+  ],
+  "shipped": {
+    "variant": "int8 weight-only per-channel, fp32 activations",
+    "path": "D:\\Jirani\\ml\\checkpoints\\onnx\\model.3.int8.onnx",
+    "size_bytes": 1044066,
+    "stress_acc": 0.9011857707509882,
+    "severity_acc": 0.8023715415019763,
+    "argmax_agreement_with_fp32": 0.9881422924901185,
+    "feature_corr_with_fp32": 0.9746115818562916,
+    "file": "model.int8.onnx"
+  }
+}

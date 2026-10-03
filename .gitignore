@@ -11,3 +11,5 @@ ml/checkpoints/
 server/*.db
 scripts/cache/
 .env
+app/public/ort/
+app/dev-samples/

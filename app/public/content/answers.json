@@ -1,0 +1,153 @@
+{
+  "review_status": "DRAFT. All agronomy text has NOT been reviewed by an agronomist. Kiswahili text is machine-drafted and needs native speaker review.",
+  "version": "0.1.0",
+
+  "stress": {
+    "healthy":    { "en": "No disease sign seen",  "sw": "Hakuna dalili ya ugonjwa" },
+    "miner":      { "en": "Leaf miner",            "sw": "Mchimbaji wa majani" },
+    "rust":       { "en": "Leaf rust",             "sw": "Kutu ya majani" },
+    "phoma":      { "en": "Brown leaf spot (Phoma)", "sw": "Madoa ya kahawia (Phoma)" },
+    "cercospora": { "en": "Cercospora leaf spot",  "sw": "Madoa ya Cercospora" },
+    "not_sure":   { "en": "Not sure",              "sw": "Sina uhakika" }
+  },
+
+  "severity": {
+    "0": { "en": "None",      "sw": "Hakuna" },
+    "1": { "en": "Very low",  "sw": "Chini sana" },
+    "2": { "en": "Low",       "sw": "Chini" },
+    "3": { "en": "High",      "sw": "Juu" },
+    "4": { "en": "Very high", "sw": "Juu sana" }
+  },
+
+  "trend": {
+    "first":  { "en": "First check of this block.",            "sw": "Ukaguzi wa kwanza wa kitalu hiki." },
+    "worse":  { "en": "Worse than {days} days ago.",           "sw": "Imezidi kuliko siku {days} zilizopita." },
+    "same":   { "en": "Same as {days} days ago.",              "sw": "Sawa na siku {days} zilizopita." },
+    "better": { "en": "Better than {days} days ago.",          "sw": "Imepungua kuliko siku {days} zilizopita." },
+    "none":   { "en": "No trend: the result is not sure.",     "sw": "Hakuna mwelekeo: jibu halina uhakika." }
+  },
+
+  "confidence": {
+    "high":     { "en": "High",     "sw": "Juu" },
+    "medium":   { "en": "Medium",   "sw": "Wastani" },
+    "not_sure": { "en": "Not sure", "sw": "Sina uhakika" }
+  },
+
+  "not_sure_reason": {
+    "too_few_good_photos": { "en": "Fewer than two photos were clear enough.",    "sw": "Picha zilizo wazi ni chini ya mbili." },
+    "low_confidence":      { "en": "The tool is not confident about these leaves.", "sw": "Kifaa hakina uhakika kuhusu majani haya." },
+    "leaves_disagree":     { "en": "The three leaves gave different answers.",      "sw": "Majani matatu yametoa majibu tofauti." }
+  },
+
+  "action": {
+    "rust.low":        { "en": "Check ten more trees in this block and count how many have orange powder under the leaves.", "sw": "Kagua miti kumi zaidi katika kitalu hiki na uhesabu mingapi ina unga wa rangi ya machungwa chini ya majani." },
+    "rust.high":       { "en": "Tell the cooperative this week and ask for the extension officer. Keep the three leaves to show them.", "sw": "Ambia chama cha ushirika wiki hii na uombe afisa ugani aje. Weka majani matatu uwaonyeshe." },
+    "miner.low":       { "en": "Check ten more trees in this block and count leaves with brown blotches.", "sw": "Kagua miti kumi zaidi katika kitalu hiki na uhesabu majani yenye mabaka ya kahawia." },
+    "miner.high":      { "en": "Tell the cooperative this week and ask for the extension officer.", "sw": "Ambia chama cha ushirika wiki hii na uombe afisa ugani aje." },
+    "phoma.low":       { "en": "Look at the windy or cold side of the block. Note whether young tips are dying back.", "sw": "Angalia upande wa kitalu wenye upepo au baridi. Andika kama vichipukizi vichanga vinakauka." },
+    "phoma.high":      { "en": "Tell the cooperative this week and ask for the extension officer.", "sw": "Ambia chama cha ushirika wiki hii na uombe afisa ugani aje." },
+    "cercospora.low":  { "en": "Check whether these trees get full sun with little shade or mulch. Note it for the officer.", "sw": "Angalia kama miti hii inapata jua kali bila kivuli wala matandazo. Mwandikie afisa." },
+    "cercospora.high": { "en": "Tell the cooperative this week and ask for the extension officer.", "sw": "Ambia chama cha ushirika wiki hii na uombe afisa ugani aje." },
+    "healthy.low":     { "en": "No disease sign on these three leaves. Check again next week with leaves from the weakest trees.", "sw": "Hakuna dalili ya ugonjwa kwenye majani haya matatu. Kagua tena wiki ijayo kwa majani ya miti dhaifu zaidi." },
+    "not_sure.low":    { "en": "Take three new leaves in good light and try again. If it still says not sure, show the leaves to the cooperative.", "sw": "Chukua majani matatu mapya kwenye mwanga mzuri ujaribu tena. Ikiendelea kusema sina uhakika, onyesha majani chama cha ushirika." }
+  },
+
+  "do_not": {
+    "rust":       { "en": "Do not spray anything before a trained person has seen it.", "sw": "Usinyunyizie chochote kabla mtu aliyefunzwa hajaona." },
+    "miner":      { "en": "Do not spray on your own. Spraying can kill the small wasps that naturally control leaf miner.", "sw": "Usinyunyizie peke yako. Kunyunyizia kunaweza kuua nyigu wadogo wanaodhibiti mchimbaji wa majani kwa asili." },
+    "phoma":      { "en": "Do not spray anything before a trained person has seen it.", "sw": "Usinyunyizie chochote kabla mtu aliyefunzwa hajaona." },
+    "cercospora": { "en": "Do not spray anything before a trained person has seen it.", "sw": "Usinyunyizie chochote kabla mtu aliyefunzwa hajaona." },
+    "healthy":    { "en": "Do not treat for disease based on this check.", "sw": "Usitibu ugonjwa kwa sababu ya ukaguzi huu." },
+    "not_sure":   { "en": "Do not spray.", "sw": "Usinyunyizie." }
+  },
+
+  "next_step": {
+    "sync":       { "en": "Sync to the cooperative.", "sw": "Tuma kwa chama cha ushirika." },
+    "ask_person": { "en": "Not sure. Ask a person.",  "sw": "Sina uhakika. Uliza mtu." }
+  },
+
+  "cause": {
+    "disease": {
+      "evidence": { "en": "Leaves likely show signs of {stress}, {severity}.", "sw": "Majani huenda yana dalili za {stress}, {severity}." },
+      "confirm":  { "en": "Show the leaves to the extension officer.", "sw": "Onyesha majani kwa afisa ugani." }
+    },
+    "disease_weather": {
+      "evidence": { "en": "Recent weather has been warm and wet, which may favour it.", "sw": "Hali ya hewa ya hivi karibuni imekuwa ya joto na unyevu, ambayo huenda inasaidia ugonjwa huu." }
+    },
+    "dry_spell": {
+      "evidence": { "en": "Rain in the last 3 months was well below normal for this area. This may have reduced the crop.", "sw": "Mvua ya miezi 3 iliyopita ilikuwa chini sana ya kawaida kwa eneo hili. Huenda imepunguza mavuno." },
+      "confirm":  { "en": "Check soil moisture and whether flowering was poor.", "sw": "Kagua unyevu wa udongo na kama maua yalikuwa machache." }
+    },
+    "soil_acidity": {
+      "evidence": { "en": "Soil in this area may be too acidic for coffee.", "sw": "Udongo wa eneo hili huenda una asidi nyingi mno kwa kahawa." },
+      "confirm":  { "en": "Ask the cooperative about a soil test.", "sw": "Uliza chama cha ushirika kuhusu kupima udongo." }
+    },
+    "sprayed_recently": {
+      "evidence": { "en": "This block was sprayed recently but signs may still be present.", "sw": "Kitalu hiki kilinyunyiziwa hivi karibuni lakini huenda dalili bado zipo." },
+      "confirm":  { "en": "Tell the officer what was sprayed and when.", "sw": "Mwambie afisa kilichonyunyiziwa na lini." }
+    },
+    "not_covered": {
+      "evidence": { "en": "This tool cannot see nutrient problems, root problems, or old trees.", "sw": "Kifaa hiki hakiwezi kuona matatizo ya virutubisho, mizizi, au miti mizee." },
+      "confirm":  { "en": "Ask a person if none of the above fits.", "sw": "Uliza mtu kama hakuna kati ya haya kinachofaa." }
+    },
+    "context_only":        { "en": "Context only, not from the leaves.", "sw": "Taarifa ya mazingira tu, si kutoka kwa majani." },
+    "context_unavailable": { "en": "Weather and soil context is not available or is out of date.", "sw": "Taarifa ya hali ya hewa na udongo haipo au imepitwa na wakati." }
+  },
+
+  "card": {
+    "draft":  { "en": "Draft guidance, confirm with your extension officer.", "sw": "Ushauri wa awali, thibitisha na afisa ugani wako." },
+    "footer": { "en": "This tool helps you decide what to check. It does not replace the extension officer.", "sw": "Kifaa hiki kinakusaidia kuamua nini cha kukagua. Hakichukui nafasi ya afisa ugani." }
+  },
+
+  "sms": {
+    "template_confident": {
+      "en": "JIRANI {date} Block {block}: {stress}, {severity}, {trend}. Do: {action}. Dont: {donot}. Not sure? Ask a person.",
+      "sw": "JIRANI {date} Kitalu {block}: {stress}, {severity}, {trend}. Fanya: {action}. Usi: {donot}. Shaka? Uliza mtu."
+    },
+    "template_not_sure": {
+      "en": "JIRANI {date} Block {block}: NOT SURE. Do: {action}. Dont: {donot}. Ask a person.",
+      "sw": "JIRANI {date} Kitalu {block}: SINA UHAKIKA. Fanya: {action}. Usi: {donot}. Uliza mtu."
+    },
+    "months": {
+      "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      "sw": ["Jan", "Feb", "Mac", "Apr", "Mei", "Jun", "Jul", "Ago", "Sep", "Okt", "Nov", "Des"]
+    },
+    "stress": {
+      "healthy":    { "en": "NO DISEASE SEEN", "sw": "HAKUNA UGONJWA" },
+      "miner":      { "en": "LEAF MINER",      "sw": "MCHIMBAJI" },
+      "rust":       { "en": "RUST",            "sw": "KUTU" },
+      "phoma":      { "en": "BROWN SPOT",      "sw": "MADOA KAHAWIA" },
+      "cercospora": { "en": "CERCOSPORA",      "sw": "CERCOSPORA" }
+    },
+    "severity": {
+      "0": { "en": "none",      "sw": "hakuna" },
+      "1": { "en": "very low",  "sw": "chini sana" },
+      "2": { "en": "low",       "sw": "chini" },
+      "3": { "en": "high",      "sw": "juu" },
+      "4": { "en": "very high", "sw": "juu sana" }
+    },
+    "trend": {
+      "first":  { "en": "first check", "sw": "ya kwanza" },
+      "worse":  { "en": "worse",       "sw": "imezidi" },
+      "same":   { "en": "same",        "sw": "sawa" },
+      "better": { "en": "better",      "sw": "imepungua" }
+    },
+    "action": {
+      "rust.low":        { "en": "check 10 trees for orange powder", "sw": "kagua miti 10 kwa unga wa machungwa" },
+      "miner.low":       { "en": "check 10 trees for brown blotches", "sw": "kagua miti 10 kwa mabaka ya kahawia" },
+      "phoma.low":       { "en": "check windy side for dying tips",  "sw": "kagua upande wa upepo" },
+      "cercospora.low":  { "en": "check shade and mulch",            "sw": "kagua kivuli na matandazo" },
+      "healthy.low":     { "en": "check again next week",            "sw": "kagua tena wiki ijayo" },
+      "not_sure.low":    { "en": "retake 3 leaves in good light",    "sw": "piga picha majani 3 kwa mwanga" },
+      "high":            { "en": "tell coop this week",              "sw": "ambia chama wiki hii" }
+    },
+    "do_not": {
+      "rust":       { "en": "spray before officer sees it", "sw": "nyunyizia kabla afisa hajaona" },
+      "miner":      { "en": "spray on your own",            "sw": "nyunyizia peke yako" },
+      "phoma":      { "en": "spray before officer sees it", "sw": "nyunyizia kabla afisa hajaona" },
+      "cercospora": { "en": "spray before officer sees it", "sw": "nyunyizia kabla afisa hajaona" },
+      "healthy":    { "en": "treat for disease",            "sw": "tibu ugonjwa" },
+      "not_sure":   { "en": "spray",                        "sw": "nyunyizia" }
+    }
+  }
+}

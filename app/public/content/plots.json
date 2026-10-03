@@ -1,0 +1,407 @@
+{
+ "synthetic": true,
+ "note": "SYNTHETIC demo registry. Fictional Ondera Coffee Cooperative. Not real farms or locations.",
+ "cooperative": "Ondera Coffee Cooperative (fictional)",
+ "plots": [
+  {
+   "plot_id": "OND-0001",
+   "lat": -0.40052,
+   "lon": 36.93503,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0002",
+   "lat": -0.41507,
+   "lon": 36.93812,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0003",
+   "lat": -0.41082,
+   "lon": 36.95593,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0004",
+   "lat": -0.42287,
+   "lon": 36.96431,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0005",
+   "lat": -0.44084,
+   "lon": 36.96587,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0006",
+   "lat": -0.40385,
+   "lon": 36.96826,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0007",
+   "lat": -0.43126,
+   "lon": 36.92626,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0008",
+   "lat": -0.40414,
+   "lon": 36.95128,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0009",
+   "lat": -0.44207,
+   "lon": 36.93994,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0010",
+   "lat": -0.42842,
+   "lon": 36.92746,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0011",
+   "lat": -0.43853,
+   "lon": 36.94551,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0012",
+   "lat": -0.44275,
+   "lon": 36.93543,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0013",
+   "lat": -0.43562,
+   "lon": 36.93034,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0014",
+   "lat": -0.40906,
+   "lon": 36.95239,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0015",
+   "lat": -0.417,
+   "lon": 36.93225,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0016",
+   "lat": -0.41917,
+   "lon": 36.94075,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0017",
+   "lat": -0.42,
+   "lon": 36.95,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0018",
+   "lat": -0.43307,
+   "lon": 36.92723,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0019",
+   "lat": -0.39887,
+   "lon": 36.96036,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0020",
+   "lat": -0.40065,
+   "lon": 36.94541,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0021",
+   "lat": -0.43071,
+   "lon": 36.9532,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0022",
+   "lat": -0.4135,
+   "lon": 36.94704,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0023",
+   "lat": -0.40869,
+   "lon": 36.92771,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0024",
+   "lat": -0.40963,
+   "lon": 36.95181,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0025",
+   "lat": -0.43338,
+   "lon": 36.92685,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0026",
+   "lat": -0.44181,
+   "lon": 36.93866,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0027",
+   "lat": -0.40875,
+   "lon": 36.96295,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0028",
+   "lat": -0.41392,
+   "lon": 36.97002,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0029",
+   "lat": -0.44388,
+   "lon": 36.96006,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0030",
+   "lat": -0.4241,
+   "lon": 36.96649,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0031",
+   "lat": -0.40329,
+   "lon": 36.94938,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0032",
+   "lat": -0.41004,
+   "lon": 36.9442,
+   "blocks": [
+    "A",
+    "B"
+   ]
+  },
+  {
+   "plot_id": "OND-0033",
+   "lat": -0.39943,
+   "lon": 36.94932,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0034",
+   "lat": -0.3983,
+   "lon": 36.95639,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0035",
+   "lat": -0.44639,
+   "lon": 36.95377,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0036",
+   "lat": -0.40754,
+   "lon": 36.94546,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0037",
+   "lat": -0.41064,
+   "lon": 36.96889,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0038",
+   "lat": -0.41132,
+   "lon": 36.97439,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  },
+  {
+   "plot_id": "OND-0039",
+   "lat": -0.41101,
+   "lon": 36.95019,
+   "blocks": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  {
+   "plot_id": "OND-0040",
+   "lat": -0.39795,
+   "lon": 36.95193,
+   "blocks": [
+    "A",
+    "B",
+    "C"
+   ]
+  }
+ ]
+}
