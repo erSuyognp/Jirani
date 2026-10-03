@@ -37,13 +37,20 @@
   .legend span { display:inline-block; margin-right:10px; }
   .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:3px; }
   .full { grid-column: 1 / -1; }
+  .note { background:#f3f6f4; border-left:4px solid var(--green); padding:6px 10px; border-radius:6px; margin:4px 0 8px; }
+  table.outbox td { font-size:15px; padding:8px 6px; }
+  table.outbox td.msg { font-size:15px; line-height:1.35; }
+  .nowrap { white-space:nowrap; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:13px; font-weight:700; }
+  .pill.would { background:#fff1c2; color:#7a5200; border:1px solid #e0a800; }
+  .pill.other { background:#eee; color:#333; }
 </style>
 </head>
 <body>
 <div class="banner">⚠ Demo data is synthetic. Plots, locations and the simulated neighbour reports are not real farms.</div>
 <header>
   <h1>🌱 Jirani · Ondera Coffee Cooperative (fictional)</h1>
-  <span class="muted">{{ n_reports }} reports ({{ n_synthetic }} synthetic) · SMS mode: <b>{{ sms_mode }}</b> · auto-refresh 15 s</span>
+  <span class="muted">{{ n_reports }} reports ({{ n_synthetic }} synthetic) · SMS: <b>{{ "mock (no real SMS is sent)" if sms_mode == "mock" else sms_mode }}</b> · auto-refresh 15 s</span>
 </header>
 <main>
   <section>
@@ -68,7 +75,7 @@
       <p class="muted">Would go to {{ a.recipients|length }} neighbouring plots that have not reported {{ a.stress }}: {{ a.recipients|join(", ") }}</p>
       <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <input type="text" name="officer" placeholder="Officer name" value="Extension officer">
-        <button class="approve" formaction="/alerts/{{ a.id }}/approve">✅ Approve and send</button>
+        <button class="approve" formaction="/alerts/{{ a.id }}/approve">✅ Approve alert</button>
         <button class="dismiss" formaction="/alerts/{{ a.id }}/dismiss">✖ Dismiss</button>
       </form>
       {% else %}
@@ -97,18 +104,23 @@
   </section>
 
   <section>
-    <h2>✉️ SMS outbox</h2>
-    <p class="muted">would_send = mock (not sent). sent = real SMS to an allowlisted demo phone. {% for k, v in counts.items() %}{{ k }}: {{ v }} {% endfor %}</p>
-    {% if counts.get("sent") %}<form method="post" action="/sms/refresh"><button class="dismiss">🔄 Check delivery</button></form>{% endif %}
+    <h2>✉️ Neighbour SMS outbox</h2>
+    <p class="note">Messages are written here only after an officer approves an alert. In this hackathon build they are
+      <b>not delivered</b>: status <span class="pill would">would be sent</span>. Delivery to real phones needs carrier
+      registration with an SMS provider, which is out of scope.</p>
+    <p class="muted">{{ outbox|length }} message{{ "" if outbox|length == 1 else "s" }}{% for k, v in counts.items() %} · {{ "would be sent" if k == "would_send" else k }}: {{ v }}{% endfor %}</p>
     <div class="scroll">
-    <table>
-      <tr><th>#</th><th>Alert</th><th>Plot</th><th>Status</th><th>Via</th><th>Message</th></tr>
+    <table class="outbox">
+      <tr><th>Time (UTC)</th><th>Recipient plot</th><th>Message</th><th>Status</th></tr>
       {% for m in outbox %}
-      <tr><td>{{ m.id }}</td><td>#{{ m.alert_id }}</td><td>{{ m.plot_id }}</td>
-        <td class="st-{{ m.status }}">{{ "would be sent" if m.status == "would_send" else m.status }}{% if m.error %}<div class="muted">{{ m.error }}</div>{% endif %}</td>
-        <td>{{ m.provider }}{% if m.to_number_masked %}<div class="muted">{{ m.to_number_masked }}</div>{% endif %}{% if m.delivery %}<div class="muted">delivery: {{ m.delivery }}</div>{% endif %}</td>
-        <td style="max-width:320px">{{ m.body }}</td></tr>
-      {% else %}<tr><td colspan="6" class="muted">Empty. Messages are written only after an officer approves an alert.</td></tr>{% endfor %}
+      <tr>
+        <td class="nowrap">{{ m.created_at[:10] }}<br><b>{{ m.created_at[11:16] }}</b></td>
+        <td class="nowrap"><b>{{ m.plot_id }}</b><div class="muted">alert #{{ m.alert_id }}</div></td>
+        <td class="msg">{{ m.body }}</td>
+        <td class="nowrap">{% if m.status == "would_send" %}<span class="pill would">would be sent</span>{% else %}<span class="pill other">{{ m.status }}</span>{% endif %}
+          {% if m.error %}<div class="muted">{{ m.error }}</div>{% endif %}</td>
+      </tr>
+      {% else %}<tr><td colspan="4" class="muted">Empty. Approve an alert to fill the outbox.</td></tr>{% endfor %}
     </table>
     </div>
   </section>

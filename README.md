@@ -19,9 +19,7 @@ limits before relying on them.
 2. Go to <https://dashboard.render.com> and sign in with GitHub.
 3. Click **New +** → **Blueprint**.
 4. Pick this repository. Render reads `render.yaml` and proposes a web service called `jirani-coop`.
-5. Render asks for the values marked `sync: false`. For now:
-   - `APP_ORIGIN`: leave as `http://localhost:5173` (you will change it in step 3).
-   - `DEMO_SMS_ALLOWLIST`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`: leave empty for now.
+5. Render asks for `APP_ORIGIN` (marked `sync: false`). For now enter `http://localhost:5173`; you will change it in step 3.
 6. Click **Apply**. Wait for the deploy to show **Live**.
 7. Open `https://<your-service>.onrender.com/api/health`. You should see `{"ok":true,"plots":40,"sms_provider":"mock"}`.
    The dashboard is at `https://<your-service>.onrender.com/`.
@@ -52,28 +50,20 @@ output `dist`, environment variable `VITE_API_URL`. `app/public/_headers` keeps 
 4. Optional: post the synthetic neighbours so the phone's report tips an alert:
    `python scripts/simulate_outbreak.py --server https://<your-service>.onrender.com`
 
-### 4. Real SMS through a Twilio trial (optional; the mock always works)
+### 4. Neighbour SMS: mock only
 
-Real SMS only ever goes to numbers on `DEMO_SMS_ALLOWLIST` (your own phones). Every other recipient stays in the mock outbox.
+The hackathon build ships with the **mock SMS gateway** (`SMS_PROVIDER=mock`, the default). When an officer approves
+an alert, one message per neighbouring plot is written to the dashboard's outbox with status **"would be sent"**.
+Nothing is delivered to real phones: that needs carrier registration with an SMS provider, which takes weeks and is
+out of scope for the hackathon.
 
-1. In the Twilio Console (trial account):
-   - Note **Account SID** and **Auth Token** (Account info) and your trial **phone number**.
-   - **Phone Numbers → Verified Caller IDs**: add and verify each demo phone. Trial accounts can only text verified numbers.
-   - **Messaging → Settings → Geo permissions**: enable the destination country of your demo phone.
-2. Test delivery from your laptop first (never commit `.env`):
-   ```
-   cp .env.example .env      # then fill TWILIO_*, DEMO_SMS_ALLOWLIST in .env
-   python scripts/send_test_sms.py --wait 120
-   ```
-   It logs the provider status (`queued` → `sent` → `delivered`) and any error code with a hint.
-3. Render → `jirani-coop` → **Environment**: set `SMS_PROVIDER=live`, `DEMO_SMS_ALLOWLIST=+<your number>`,
-   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`. Save.
-4. Approve an alert on the dashboard. The nearest one (or two) recipient plots stand in for your allowlisted
-   phone(s); the outbox shows that row as `sent` (number masked) and the rest as `would be sent`.
-   **Check delivery** asks Twilio for the delivery status.
+The gateway interface stays in `server/sms_gateway.py` so a real provider can be plugged in later. It includes a
+Twilio client, an allowlist that restricts real sends to the team's own numbers, fallback to the mock on any error,
+and the tests for all three. `scripts/send_test_sms.py` is a delivery check for that future setup. None of it is
+enabled in this build.
 
-If anything fails, the row shows `failed_fallback_mock` with the provider's error and the demo continues.
-Set `SMS_PROVIDER=mock` to switch real sending off entirely.
+(The farmer's own result SMS is unaffected: the app opens the phone's SMS app with the message prefilled, and the
+farmer presses send over the normal cellular network.)
 
 **Fallback if hosting fails:** run the server on a laptop (`uvicorn main:app --app-dir server --port 8000`) behind an
 HTTPS tunnel (`cloudflared tunnel --url http://localhost:8000` or `ngrok http 8000`) and use the tunnel URL as

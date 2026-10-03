@@ -12,17 +12,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: SMS_PROVIDER          # mock (default) or live
+      - key: SMS_PROVIDER          # mock only in the hackathon build: alerts are written as "would be sent"
         value: mock
-      - key: SMS_LIVE_PROVIDER
-        value: twilio
       - key: APP_ORIGIN            # the Vercel app URL, e.g. https://jirani-xyz.vercel.app
-        sync: false
-      - key: DEMO_SMS_ALLOWLIST    # your own phone(s), E.164, comma-separated
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_FROM_NUMBER
         sync: false

@@ -5,6 +5,9 @@
   Synthetic plots have no real numbers; DEMO_PLOT_PHONES maps one or two of them to the team's own phones.
   Every other recipient goes through the mock. Any live failure falls back to the mock with the error recorded.
 Credentials come from environment variables only (see .env.example).
+
+Hackathon build decision (2026-10-03): ships with the MOCK only. Real delivery needs carrier registration with an
+SMS provider, which takes weeks and is out of scope. The live path, allowlist and tests stay for later.
 """
 import os
 import re

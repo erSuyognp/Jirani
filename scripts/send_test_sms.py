@@ -1,6 +1,6 @@
 """Send ONE test SMS through the Twilio trial account to an allowlisted phone and report delivery.
 
-Use this before filming to check that a real SMS actually arrives.
+NOT USED in the hackathon build (mock SMS only). Kept for when a provider with carrier registration is set up.
 - Reads TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER and DEMO_SMS_ALLOWLIST from the environment
   (or from a local .env file if present). Never prints credentials; phone numbers are masked.
 - Refuses any number that is not on DEMO_SMS_ALLOWLIST.
