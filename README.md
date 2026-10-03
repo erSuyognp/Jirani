@@ -120,6 +120,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 Sync from the APK uses native HTTP (`CapacitorHttp`), so the server's `APP_ORIGIN` CORS list needs no change.
 
+The app draws edge-to-edge (safe-area insets from Capacitor's `SystemBars`), handles the hardware back button
+(`@capacitor/app`), gives haptic feedback on photo checks (`@capacitor/haptics`), is locked to portrait and has
+Android backup switched off, so checks and the basic-phone number stay on the device. The debug APK is for testing;
+a store release still needs a signing key and a signed `bundleRelease`.
+
 ### Server
 ```bash
 python -m venv .venv
@@ -251,7 +256,7 @@ output `dist`, environment variable `VITE_API_URL`. `app/public/_headers` keeps 
 
 1. Render → `jirani-coop` → **Environment** → set `APP_ORIGIN` = your app URL, e.g. `https://jirani-xyz.vercel.app`
    (comma-separate several origins if needed). **Save Changes**; Render restarts the service.
-2. On a phone, open the app URL once while online. Wait for **"Offline ready ✓"** on Home.
+2. On a phone, open the app URL once while online. Wait for **"Ready to work without internet"** at the bottom of Home.
 3. Do a check, open **Sync**, press **Send**. The report appears on the dashboard.
 4. Optional: post the synthetic neighbours so the phone's report tips an alert:
    `python scripts/simulate_outbreak.py --server https://<your-service>.onrender.com`

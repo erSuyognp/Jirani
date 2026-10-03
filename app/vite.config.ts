@@ -1,12 +1,16 @@
+import { readFileSync } from "node:fs";
 import { defaultClientConditions, defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 
 // BASE lets the same build run at / (local) or /<repo>/ (GitHub Pages).
 const base = process.env.BASE ?? "/";
 
 export default defineConfig(({ command }) => ({
   base,
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) }, // shown in Settings > About
   plugins: [
     react(),
     VitePWA({

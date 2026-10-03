@@ -31,17 +31,21 @@ export function cardClipKeys(card: Card): string[] {
 }
 
 let current: HTMLAudioElement | null = null;
+let run = 0; // a newer playKeys or stopAudio call ends the sequence that is playing
 
 export async function playKeys(keys: string[]): Promise<void> {
   const m = await loadManifest();
+  const mine = ++run;
   current?.pause();
   for (const k of keys) {
+    if (mine !== run) return;
     const f = m[k];
     if (!f) continue;
     await new Promise<void>((resolve) => {
       const a = new Audio(`${BASE}audio/sw/${f}`);
       current = a;
       a.onended = () => resolve();
+      a.onpause = () => resolve();
       a.onerror = () => resolve();
       a.play().catch(() => resolve());
     });
@@ -49,6 +53,7 @@ export async function playKeys(keys: string[]): Promise<void> {
 }
 
 export function stopAudio() {
+  run++;
   current?.pause();
 }
 

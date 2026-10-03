@@ -1,7 +1,7 @@
 {
   "name": "jirani-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "copy-ort": "node scripts/copy-ort.mjs",
@@ -14,10 +14,13 @@
   },
   "dependencies": {
     "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.5.2",
     "@capacitor/filesystem": "8.1.4",
+    "@capacitor/haptics": "8.0.2",
     "@capacitor/share": "8.0.3",
     "idb": "8.0.3",
+    "lucide-react": "1.51.0",
     "onnxruntime-web": "1.30.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"

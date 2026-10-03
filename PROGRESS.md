@@ -51,7 +51,7 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
       (fetched from the authors' repo through the app's file input) → card "Kutu ya majani, Juu (99%), Juu sana"
       (inference 66 / 33 / 114 ms) → Save → Sync showed the exact packet → Send → "1 zimetumwa ✓" → the deployed
       dashboard shows `1 reports (0 synthetic)` and OND-0017 · B · rust · very high on the visit list.
-- [ ] **User**: repeat once from a real phone (open the app URL online, wait for "Offline ready ✓", do a check, Sync → Send),
+- [ ] **User**: repeat once from a real phone (open the app URL online, wait for "Ready to work without internet", do a check, Sync → Send),
       then check the dashboard.
 
 ### Filming notes
@@ -126,9 +126,21 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
   - 204 / 82 / 90 ms per leaf
 - Not tested on the APK: airplane mode, the camera button, the SMS link (no basic-phone number set), a "Not sure" photo.
 
+### Product UI pass (2026-10-03)
+- UI layer rebuilt (web app and APK share it); diagnosis, refusal, trend, causes, SMS and sync logic are unchanged (26/26 tests).
+  - `app/src/ui/`: `App.tsx` (state, navigation), one file per screen, `widgets.tsx`, `native.ts` (Capacitor glue).
+  - Icon set (`lucide-react`) instead of emoji; bottom navigation; first-launch welcome → setup; Home shows the latest result per block.
+  - Check flow with step bar, in-app dialogs (stop a check, save a result, clear data) and toasts; no browser `confirm()`.
+  - Result card keeps the seven slots, the draft line, heatmaps and the latency line; it now follows the language switch.
+  - Sync lists the queued reports and still shows the exact JSON. Server address, latency toggle and demo data moved to Settings → Advanced.
+- Android shell: edge-to-edge with safe-area insets, hardware back button, haptics, portrait lock, `allowBackup="false"`, version 1.0.0 (code 2), Capacitor template tests removed.
+- Checked on the Galaxy A14 over adb: gallery → 3 leaves → result (270 / 88 / 89 ms) → save; back button and both dialogs; Kiswahili and English; the SMS button opens the Android app chooser (no message sent).
+- Not checked on the phone: first-launch welcome/setup (browser only; the phone kept its data), the camera button, audio playback, share sheet, Sync → Send with the new screen, airplane mode.
+- New Kiswahili UI strings are machine-drafted like the rest.
+
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
-  1. Open https://jirani-eosin.vercel.app online and wait for "Offline ready ✓".
+  1. Open https://jirani-eosin.vercel.app online and wait for "Ready to work without internet".
   2. Turn on airplane mode.
   3. Do a 3-leaf check, plus one bad photo → "Not sure".
   4. Open the SMS link, then play the audio.
