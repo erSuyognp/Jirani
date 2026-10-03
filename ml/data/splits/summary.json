@@ -1,0 +1,112 @@
+{
+  "source": "BRACOL leaf dataset, authors' split (seed 150, fold 1)",
+  "stress_classes": [
+    "healthy",
+    "miner",
+    "rust",
+    "phoma",
+    "cercospora"
+  ],
+  "severity_levels": [
+    "healthy",
+    "very_low",
+    "low",
+    "high",
+    "very_high"
+  ],
+  "rows_labelled": 1685,
+  "rows_missing_image": 343,
+  "splits": {
+    "train": {
+      "n": 934,
+      "stress": {
+        "healthy": 92,
+        "miner": 182,
+        "rust": 332,
+        "phoma": 238,
+        "cercospora": 90
+      },
+      "severity": {
+        "healthy": 92,
+        "very_low": 565,
+        "low": 184,
+        "high": 60,
+        "very_high": 33
+      }
+    },
+    "val": {
+      "n": 200,
+      "stress": {
+        "healthy": 27,
+        "miner": 31,
+        "rust": 69,
+        "phoma": 48,
+        "cercospora": 25
+      },
+      "severity": {
+        "healthy": 27,
+        "very_low": 110,
+        "low": 49,
+        "high": 8,
+        "very_high": 6
+      }
+    },
+    "test": {
+      "n": 208,
+      "stress": {
+        "healthy": 23,
+        "miner": 40,
+        "rust": 64,
+        "phoma": 60,
+        "cercospora": 21
+      },
+      "severity": {
+        "healthy": 23,
+        "very_low": 118,
+        "low": 42,
+        "high": 15,
+        "very_high": 10
+      }
+    }
+  },
+  "stress_x_severity": {
+    "healthy": {
+      "healthy": 142,
+      "very_low": 0,
+      "low": 0,
+      "high": 0,
+      "very_high": 0
+    },
+    "miner": {
+      "healthy": 0,
+      "very_low": 195,
+      "low": 44,
+      "high": 14,
+      "very_high": 0
+    },
+    "rust": {
+      "healthy": 0,
+      "very_low": 278,
+      "low": 117,
+      "high": 38,
+      "very_high": 32
+    },
+    "phoma": {
+      "healthy": 0,
+      "very_low": 202,
+      "low": 99,
+      "high": 29,
+      "very_high": 16
+    },
+    "cercospora": {
+      "healthy": 0,
+      "very_low": 118,
+      "low": 15,
+      "high": 2,
+      "very_high": 1
+    }
+  },
+  "image_sizes_sample50": {
+    "2048x1024": 50
+  }
+}
