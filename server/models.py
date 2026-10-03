@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS alerts (
 CREATE TABLE IF NOT EXISTS sms_outbox (
   id INTEGER PRIMARY KEY AUTOINCREMENT, alert_id INTEGER NOT NULL, plot_id TEXT NOT NULL,
   body TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
-  provider TEXT, provider_id TEXT, error TEXT, to_number_masked TEXT
+  provider TEXT, provider_id TEXT, error TEXT, to_number_masked TEXT,
+  delivery TEXT  -- provider delivery status (queued/sent/delivered/undelivered/failed + error code)
 );
 """
 
@@ -35,14 +36,22 @@ def connect(path):
     con = sqlite3.connect(path, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
+    migrate(con)
     return con
+
+
+def migrate(con):
+    cols = {r[1] for r in con.execute("PRAGMA table_info(sms_outbox)")}
+    if "delivery" not in cols:
+        con.execute("ALTER TABLE sms_outbox ADD COLUMN delivery TEXT")
+        con.commit()
 
 
 def seed_if_empty(con, seed_path):
     """Free hosts may wipe disk: reseed the SYNTHETIC registry whenever the plots table is empty."""
     if con.execute("SELECT COUNT(*) FROM plots").fetchone()[0]:
         return 0
-    plots = json.load(open(seed_path))["plots"]
+    plots = json.load(open(seed_path, encoding="utf8"))["plots"]
     con.executemany("INSERT INTO plots VALUES (?,?,?,?,NULL)",
                     [(p["plot_id"], p["lat"], p["lon"], json.dumps(p["blocks"])) for p in plots])
     con.commit()

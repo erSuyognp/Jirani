@@ -1,0 +1,5 @@
+# Cloudflare Pages: never cache the service worker, so phones pick up new versions.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.webmanifest
+  Cache-Control: public, max-age=0, must-revalidate

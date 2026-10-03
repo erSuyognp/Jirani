@@ -6,7 +6,8 @@ OUTBREAK = {
     "min_severity": 2,          # consider confident reports with severity >= this
     "min_plots": 3,             # distinct plots needed for a draft alert
     "cluster_radius_km": 2.0,   # plots within this distance of an anchor plot form a cluster
-    "recipient_radius_km": 3.0, # neighbours within this distance of the cluster centre get the alert
+    "recipient_radius_km": 1.5, # neighbours within this distance of the cluster centre get the alert
+                                # (1.5 km reaches 9 plots for the demo cluster around OND-0017; target 8-12)
     "dedupe_radius_km": 2.0,    # an open alert for the same stress within this distance is updated, not duplicated
     "stresses": ["miner", "rust", "phoma", "cercospora"],
 }
@@ -19,7 +20,7 @@ APP_ORIGIN = [o.strip() for o in os.environ.get(
 
 # SMS gateway. See sms_gateway.py and .env.example.
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "mock").lower()          # mock | live
-SMS_LIVE_PROVIDER = os.environ.get("SMS_LIVE_PROVIDER", "").lower()      # chosen at M6b
+SMS_LIVE_PROVIDER = os.environ.get("SMS_LIVE_PROVIDER", "twilio").lower()  # twilio (trial)
 # Only these numbers may ever receive a real SMS (the team's own phones). Comma-separated, E.164.
 DEMO_SMS_ALLOWLIST = [n.strip() for n in os.environ.get("DEMO_SMS_ALLOWLIST", "").split(",") if n.strip()]
 # Map synthetic plots to demo numbers for live mode: "OND-0012=+2547...,OND-0018=+2547..."

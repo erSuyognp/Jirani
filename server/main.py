@@ -18,7 +18,7 @@ import sms_gateway
 from models import connect, now_iso, seed_if_empty, upsert_report, validate_packet
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TEMPLATES = json.load(open(os.path.join(HERE, "alert_templates.json")))
+TEMPLATES = json.load(open(os.path.join(HERE, "alert_templates.json"), encoding="utf8"))
 
 app = FastAPI(title="Jirani cooperative server")
 app.add_middleware(CORSMiddleware, allow_origins=config.APP_ORIGIN, allow_methods=["GET", "POST"],
@@ -79,11 +79,29 @@ def approve(alert_id: int, officer: str = Form("officer")):
     body = alert_body(a["stress"], n_plots)
     con.execute("UPDATE alerts SET status='approved', approved_by=?, approved_at=? WHERE id=?",
                 (officer.strip()[:60] or "officer", now_iso(), alert_id))
-    for pid in outbreak.recipients(con, a):
+    recips = outbreak.recipients(con, a)  # nearest first
+    gateway.map_demo_recipients(recips)
+    for pid in recips:
         r = gateway.send(pid, body)
         con.execute("""INSERT INTO sms_outbox (alert_id, plot_id, body, status, created_at, provider, provider_id,
                        error, to_number_masked) VALUES (?,?,?,?,?,?,?,?,?)""",
                     (alert_id, pid, body, r.status, now_iso(), r.provider, r.provider_id, r.error, r.to_number_masked))
+    con.commit()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/sms/refresh")
+def sms_refresh():
+    """Officer-triggered: ask the provider for delivery status of real (non-mock) messages."""
+    rows = con.execute("SELECT id, provider_id FROM sms_outbox WHERE status='sent' AND provider='twilio' "
+                       "AND provider_id IS NOT NULL ORDER BY id DESC LIMIT 10").fetchall()
+    for r in rows:
+        try:
+            st = sms_gateway.twilio_from_env().status(r["provider_id"])
+            d = st["status"] + (f" (error {st['error_code']})" if st.get("error_code") else "")
+        except Exception as e:
+            d = f"status check failed: {type(e).__name__}"
+        con.execute("UPDATE sms_outbox SET delivery=? WHERE id=?", (d, r["id"]))
     con.commit()
     return RedirectResponse("/", status_code=303)
 

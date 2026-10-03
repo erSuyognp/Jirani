@@ -99,13 +99,14 @@
   <section>
     <h2>✉️ SMS outbox</h2>
     <p class="muted">would_send = mock (not sent). sent = real SMS to an allowlisted demo phone. {% for k, v in counts.items() %}{{ k }}: {{ v }} {% endfor %}</p>
+    {% if counts.get("sent") %}<form method="post" action="/sms/refresh"><button class="dismiss">🔄 Check delivery</button></form>{% endif %}
     <div class="scroll">
     <table>
       <tr><th>#</th><th>Alert</th><th>Plot</th><th>Status</th><th>Via</th><th>Message</th></tr>
       {% for m in outbox %}
       <tr><td>{{ m.id }}</td><td>#{{ m.alert_id }}</td><td>{{ m.plot_id }}</td>
         <td class="st-{{ m.status }}">{{ "would be sent" if m.status == "would_send" else m.status }}{% if m.error %}<div class="muted">{{ m.error }}</div>{% endif %}</td>
-        <td>{{ m.provider }}{% if m.to_number_masked %}<div class="muted">{{ m.to_number_masked }}</div>{% endif %}</td>
+        <td>{{ m.provider }}{% if m.to_number_masked %}<div class="muted">{{ m.to_number_masked }}</div>{% endif %}{% if m.delivery %}<div class="muted">delivery: {{ m.delivery }}</div>{% endif %}</td>
         <td style="max-width:320px">{{ m.body }}</td></tr>
       {% else %}<tr><td colspan="6" class="muted">Empty. Messages are written only after an officer approves an alert.</td></tr>{% endfor %}
     </table>

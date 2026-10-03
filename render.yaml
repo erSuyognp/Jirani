@@ -1,0 +1,28 @@
+# Render Blueprint for the cooperative server (FastAPI + SQLite).
+# Free plan: the service sleeps when idle and its disk is wiped on restart/redeploy.
+# The server reseeds the SYNTHETIC registry on startup when the database is empty.
+services:
+  - type: web
+    name: jirani-coop
+    runtime: python
+    plan: free
+    buildCommand: pip install -r server/requirements.txt
+    startCommand: uvicorn main:app --app-dir server --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SMS_PROVIDER          # mock (default) or live
+        value: mock
+      - key: SMS_LIVE_PROVIDER
+        value: twilio
+      - key: APP_ORIGIN            # the Vercel app URL, e.g. https://jirani-xyz.vercel.app
+        sync: false
+      - key: DEMO_SMS_ALLOWLIST    # your own phone(s), E.164, comma-separated
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false

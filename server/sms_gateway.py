@@ -6,6 +6,8 @@
   Every other recipient goes through the mock. Any live failure falls back to the mock with the error recorded.
 Credentials come from environment variables only (see .env.example).
 """
+import os
+import re
 from dataclasses import dataclass
 from typing import Callable, Optional, Protocol
 
@@ -45,9 +47,17 @@ class Gateway:
         self.client_factory = client_factory
         self._client: Optional[LiveClient] = None
 
+    def map_demo_recipients(self, recipients: list[str], max_phones: int = 2) -> None:
+        """Live demo without explicit DEMO_PLOT_PHONES: the nearest one or two SYNTHETIC recipient plots stand in
+        for the team's allowlisted phones. Anything not on the allowlist still never receives a real SMS."""
+        if self.mode != "live" or self.plot_phones:
+            return
+        phones = sorted(self.allowlist)[:max_phones]
+        self._auto = dict(zip(recipients, phones))
+
     def allowed_number_for(self, plot_id: str) -> Optional[str]:
         """The real number for a plot ONLY if it is on the allowlist. Never anything else."""
-        n = self.plot_phones.get(plot_id)
+        n = self.plot_phones.get(plot_id) or getattr(self, "_auto", {}).get(plot_id)
         return n if n and n in self.allowlist else None
 
     def send(self, plot_id: str, body: str) -> SendResult:
@@ -64,20 +74,60 @@ class Gateway:
             pid = self._client.send(to, body)
             return SendResult("sent", self._client.name, provider_id=pid, to_number_masked=mask(to))
         except Exception as e:  # a provider outage must never break the demo
-            return SendResult("failed_fallback_mock", "mock", error=f"{type(e).__name__}: {e}"[:300],
-                              to_number_masked=mask(to))
+            err = re.sub(r"\+?\d[\d ]{6,}\d", lambda m: mask(normalise(m.group())), f"{type(e).__name__}: {e}")
+            return SendResult("failed_fallback_mock", "mock", error=err[:300], to_number_masked=mask(to))
+
+
+class TwilioClient:
+    """Twilio Programmable Messaging REST API (trial account). Credentials from env only; never logged."""
+    name = "twilio"
+    API = "https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages"
+
+    def __init__(self, sid: str, token: str, from_number: str, timeout: float = 15.0):
+        if not (sid and token and from_number):
+            raise RuntimeError("TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER must be set")
+        self.sid, self._token, self.from_number, self.timeout = sid, token, from_number, timeout
+
+    def _url(self, suffix=""):
+        return self.API.format(sid=self.sid) + suffix + ".json"
+
+    @staticmethod
+    def _err(r):
+        try:
+            j = r.json()
+            return f"HTTP {r.status_code} Twilio error {j.get('code')}: {j.get('message')}"
+        except Exception:
+            return f"HTTP {r.status_code}"
+
+    def send(self, to: str, body: str) -> str:
+        import requests
+        r = requests.post(self._url(), data={"To": to, "From": self.from_number, "Body": body},
+                          auth=(self.sid, self._token), timeout=self.timeout)
+        if r.status_code >= 300:
+            raise RuntimeError(self._err(r))
+        return r.json()["sid"]
+
+    def status(self, message_sid: str) -> dict:
+        """Delivery status: queued | sending | sent | delivered | undelivered | failed, plus error code."""
+        import requests
+        r = requests.get(self._url("/" + message_sid), auth=(self.sid, self._token), timeout=self.timeout)
+        if r.status_code >= 300:
+            raise RuntimeError(self._err(r))
+        j = r.json()
+        return {k: j.get(k) for k in ("sid", "status", "error_code", "error_message", "num_segments", "price",
+                                      "date_sent")}
+
+
+def twilio_from_env() -> TwilioClient:
+    return TwilioClient(os.environ.get("TWILIO_ACCOUNT_SID", ""), os.environ.get("TWILIO_AUTH_TOKEN", ""),
+                        os.environ.get("TWILIO_FROM_NUMBER", ""))
 
 
 def live_client_factory() -> Optional[Callable[[], LiveClient]]:
-    """Provider is chosen at M6b (Twilio trial or Africa's Talking sandbox). Until then live mode falls back."""
-    if config.SMS_LIVE_PROVIDER == "":
-        return None
-    raise NotImplementedError(f"live provider {config.SMS_LIVE_PROVIDER!r} not wired yet (M6b)")
+    if config.SMS_LIVE_PROVIDER == "twilio":
+        return twilio_from_env
+    return None  # unknown/unset provider: live mode falls back to mock with the error recorded
 
 
 def from_env() -> Gateway:
-    try:
-        factory = live_client_factory()
-    except NotImplementedError:
-        factory = None
-    return Gateway(config.SMS_PROVIDER, config.DEMO_SMS_ALLOWLIST, config.DEMO_PLOT_PHONES, factory)
+    return Gateway(config.SMS_PROVIDER, config.DEMO_SMS_ALLOWLIST, config.DEMO_PLOT_PHONES, live_client_factory())

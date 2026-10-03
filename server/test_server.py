@@ -87,7 +87,7 @@ def test_approve_writes_outbox_to_neighbours_only(client):
     r = c.post(f"/alerts/{aid}/approve", data={"officer": "Officer Wanjiru"}, follow_redirects=False)
     assert r.status_code == 303
     rows = main.con.execute("SELECT * FROM sms_outbox").fetchall()
-    assert rows, "approval should write one message per recipient plot"
+    assert 8 <= len(rows) <= 12, f"alert should reach roughly 8-12 nearby plots, got {len(rows)}"
     plots = {x["plot_id"] for x in rows}
     assert not plots & {n1, n2, "OND-0017"}       # reporters are not alerted
     assert all(x["status"] == "would_send" for x in rows)
@@ -171,3 +171,50 @@ def test_live_failure_falls_back_to_mock():
     assert r.status == "failed_fallback_mock" and "provider down" in r.error
     g2 = sms_gateway.Gateway("live", ["+254700000001"], {"OND-0012": "+254700000001"}, None)
     assert g2.send("OND-0012", "hi").status == "failed_fallback_mock"
+
+
+def test_demo_cluster_reaches_8_to_12_neighbours(client):
+    """The filmed scenario: simulate_outbreak's two nearest neighbours + the phone's OND-0017 report."""
+    c, main = client
+    n1, n2 = near_demo(2)
+    c.post("/api/reports", json=[pkt(1, n1), pkt(2, n2), pkt(3, "OND-0017")])
+    a = main.con.execute("SELECT * FROM alerts").fetchone()
+    import outbreak
+    assert 8 <= len(outbreak.recipients(main.con, a)) <= 12
+
+
+def test_auto_demo_mapping_uses_nearest_recipients_and_allowlist_only():
+    fake = FakeClient()
+    g = sms_gateway.Gateway("live", ["+254700000001", "+254700000002", "+254700000003"], {}, lambda: fake)
+    g.map_demo_recipients(["OND-0030", "OND-0031", "OND-0032", "OND-0033"])   # nearest first
+    results = [g.send(p, "hi").status for p in ["OND-0030", "OND-0031", "OND-0032", "OND-0033"]]
+    assert results == ["sent", "sent", "would_send", "would_send"]           # at most two real phones
+    assert set(fake.sent) <= {"+254700000001", "+254700000002", "+254700000003"}
+    g_mock = sms_gateway.Gateway("mock", ["+254700000001"], {}, lambda: fake)
+    g_mock.map_demo_recipients(["OND-0030"])
+    assert g_mock.send("OND-0030", "hi").status == "would_send"
+
+
+def test_provider_error_masks_phone_numbers():
+    class Leaky(FakeClient):
+        def send(self, to, body):
+            raise RuntimeError(f"HTTP 400 Twilio error 21608: The number {to} is unverified")
+    g = sms_gateway.Gateway("live", ["+254700000001"], {"OND-0012": "+254700000001"}, lambda: Leaky())
+    r = g.send("OND-0012", "hi")
+    assert r.status == "failed_fallback_mock" and "21608" in r.error
+    assert "+254700000001" not in r.error and "254700000001" not in r.error
+
+
+def test_live_approval_end_to_end_with_fake_provider(client, monkeypatch):
+    c, main = client
+    fake = FakeClient()
+    monkeypatch.setattr(main, "gateway", sms_gateway.Gateway("live", ["+254700000001"], {}, lambda: fake))
+    n1, n2 = near_demo(2)
+    c.post("/api/reports", json=[pkt(1, n1), pkt(2, n2), pkt(3, "OND-0017")])
+    aid = main.con.execute("SELECT id FROM alerts").fetchone()[0]
+    c.post(f"/alerts/{aid}/approve", follow_redirects=False)
+    rows = main.con.execute("SELECT status, provider FROM sms_outbox").fetchall()
+    assert [r["status"] for r in rows].count("sent") == 1
+    assert all(r["status"] == "would_send" for r in rows if r["status"] != "sent")
+    assert fake.sent == ["+254700000001"]
+    assert "+254700000001" not in c.get("/").text          # full number never shown on the dashboard
