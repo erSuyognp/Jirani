@@ -24,7 +24,7 @@ export function computeTrend(
     })
     .sort((a, b) => Date.parse(b.takenAt) - Date.parse(a.takenAt))[0];
   if (!prev) return { trend: "first", days: null, previous: null };
-  const days = Math.max(1, Math.round((now - Date.parse(prev.takenAt)) / DAY));
+  const days = Math.floor((now - Date.parse(prev.takenAt)) / DAY); // 0 = earlier today
   const d = current.severity - (prev.severity as number);
   return { trend: d > 0 ? "worse" : d < 0 ? "better" : "same", days, previous: prev };
 }

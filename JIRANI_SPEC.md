@@ -516,7 +516,12 @@ Draft rule, all values in config:
 ONDERA COOP: leaf rust reported on 3 farms near you this week. Check your coffee leaves. Bring 3 leaves to the coop if you see orange powder.
 ```
 
-- SMS sending is **mocked**: the dashboard shows the outbox as "would be sent". Put the gateway behind an interface so a real provider can be plugged in later. Do not integrate a paid gateway.
+- SMS sending goes through a small gateway interface (`server/sms_gateway.py`) with two implementations, chosen by the `SMS_PROVIDER` environment variable:
+  - `mock` (default): writes to `sms_outbox` with status `would_send`. The dashboard shows it as "would be sent". This is the fallback and must always work.
+  - `live`: sends a real SMS through a provider's **trial or sandbox** tier (for example Twilio or Africa's Talking; check current terms and ask the user which one and for credentials). Status becomes `sent` or `failed`, with the provider's message id or error stored.
+- **Safety rule for live sending:** real messages may only go to numbers in the `DEMO_SMS_ALLOWLIST` environment variable (the team's own phones). Synthetic plots have no real phone numbers. In live mode, map one or two synthetic neighbour plots to allowlisted demo numbers and send the rest through the mock. Never send to a number that is not on the allowlist. Add a unit test for this.
+- If the live send fails for any reason, fall back to the mock, record the error, and keep the dashboard working. A provider outage must never break the demo.
+- Credentials come from environment variables only. Never commit them. Add `.env` to `.gitignore` and provide `.env.example`.
 
 ### Dashboard
 
@@ -525,6 +530,18 @@ One page: map with plots coloured by latest stress and severity; table of flagge
 ### Demo support
 
 `scripts/simulate_outbreak.py` posts a handful of synthetic rust reports from neighbouring plots so that the real report from the phone in the demo tips the cluster over the threshold. Clearly labelled synthetic in code, README, and dashboard.
+
+---
+
+### Deployment (both parts live)
+
+The submission has **two live links**: the farmer app and the cooperative dashboard. Anyone should be able to sync a report from the app and see it appear on the dashboard.
+
+- **App:** the PWA is built to static files and hosted over HTTPS at a domain root (for example Vercel or Cloudflare Pages; root directory `app`, build `npm run build`, output `dist`). "Static hosting" here only means how files are delivered. All inference stays on the phone; do not move the model to the server, because the core feature must work offline.
+- **Server:** deploy FastAPI to a free Python host with HTTPS (for example Render; check current free-tier limits). Provide a start command. Free tiers may sleep and may wipe local disk, so **reseed the synthetic cooperative data on startup when the database is empty**.
+- The app reads the server address from `VITE_API_URL` with a local default. The server reads allowed origins for CORS from `APP_ORIGIN`.
+- A laptop server behind an HTTPS tunnel (cloudflared or ngrok) is the fallback if hosted deployment fails.
+- Write exact deploy steps for both parts into the README.
 
 ---
 
@@ -575,10 +592,11 @@ Each milestone ends with a commit and a short note of what works. If a milestone
 | M4 | F1 trend + history; F2 heatmap | Second check on same block shows worse/same/better; overlay renders | 1.25 h |
 | M5 | Handoff: SMS + Kiswahili audio pack | `sms:` opens prefilled ≤ 160 chars; audio plays offline | 1.25 h |
 | M6 | F3: outbox, server, outbreak detection, dashboard, approval, mock SMS outbox | Simulated neighbours + one real sync → draft alert → approve → outbox rows | 2 h |
+| M6b | Deploy server + app as two live HTTPS links; live SMS provider behind the gateway with allowlist and mock fallback | From the deployed app on a phone: sync → dashboard shows the report → approve alert → **a real SMS arrives on an allowlisted phone**; with `SMS_PROVIDER=mock` the same flow still works | 1.25 h |
 | M7 | F4: context pack + cause ranking on the card | Unit tests pass for the five scenarios; card shows ranked causes | 1.5 h |
-| M8 | README, DATA.md, EVIDENCE.md, deploy static app over HTTPS, final offline test on a real phone | Fresh clone runs from README; phone test passes in airplane mode | 1 h |
+| M8 | README, DATA.md, EVIDENCE.md, redeploy final builds of app and server, final offline test on a real phone | Fresh clone runs from README; phone test passes in airplane mode | 1 h |
 
-**Cut order if time runs out** (drop from the top): Gikuyu anything → live camera preview → audio share → map on dashboard (keep the table) → F4 soil component (keep rainfall) → F2 heatmap. **Never cut:** offline inference, the refusal gate, the evaluation report, the SMS handoff.
+**Cut order if time runs out** (drop from the top): Gikuyu anything → live camera preview → audio share → live SMS provider (keep the mock) → hosted server (fall back to a tunnel) → map on dashboard (keep the table) → F4 soil component (keep rainfall) → F2 heatmap. **Never cut:** offline inference, the refusal gate, the evaluation report, the SMS handoff.
 
 **If time is left over** (in this order): printed sample card with fiducial markers and automatic three-leaf cropping from one photo; pictogram-only card mode for unsupported languages; Gikuyu prompts recorded by a human speaker.
 
@@ -593,7 +611,7 @@ The video will show, in order:
 3. A bad photo → "Not sure. Ask a person. Do not spray."
 4. SMS prefilled for the basic phone; Kiswahili audio plays.
 5. Airplane mode off → Sync → packet shown → sent.
-6. Cooperative dashboard: flagged block appears, draft outbreak alert, officer approves, neighbour SMS outbox fills.
+6. Cooperative dashboard (live link): flagged block appears, draft outbreak alert, officer approves, and **a real SMS arrives on a second phone standing in for a neighbour**. The outbox shows the rest as mock.
 7. The evaluation table: size, accuracy fp32 vs int8, clean vs perturbed, coverage at τ, what the data does not cover.
 
 Make sure each of these can be shown cleanly and repeatably. Add a hidden "demo mode" toggle in Settings that preloads one earlier observation for Block B so the trend line has something to compare against (label it as demo data in the UI).
@@ -602,7 +620,7 @@ Make sure each of these can be shown cleanly and repeatably. Add a hidden "demo 
 
 ## 15. Working agreements for Claude Code
 
-- Ask the user before anything that needs credentials, paid services, or a manual download.
+- Ask the user before anything that needs credentials, paid services, or a manual download. For hosting and the SMS provider, ask the user to create the accounts and supply keys through environment variables; use only free, trial, or sandbox tiers.
 - Do not invent dataset facts, statistics, citations, or translations presented as reviewed. When unsure, write `TODO: verify` and tell the user.
 - Keep all thresholds and tunables in config files, not scattered through code.
 - Write small unit tests for `aggregate`, `refusal`, `trend`, `causes`, the SMS length check, and the no-chemicals content scan. Skip UI tests.

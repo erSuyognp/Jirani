@@ -24,6 +24,9 @@
     "worse":  { "en": "Worse than {days} days ago.",           "sw": "Imezidi kuliko siku {days} zilizopita." },
     "same":   { "en": "Same as {days} days ago.",              "sw": "Sawa na siku {days} zilizopita." },
     "better": { "en": "Better than {days} days ago.",          "sw": "Imepungua kuliko siku {days} zilizopita." },
+    "worse_today":  { "en": "Worse than the check earlier today.",  "sw": "Imezidi kuliko ukaguzi wa mapema leo." },
+    "same_today":   { "en": "Same as the check earlier today.",    "sw": "Sawa na ukaguzi wa mapema leo." },
+    "better_today": { "en": "Better than the check earlier today.", "sw": "Imepungua kuliko ukaguzi wa mapema leo." },
     "none":   { "en": "No trend: the result is not sure.",     "sw": "Hakuna mwelekeo: jibu halina uhakika." }
   },
 

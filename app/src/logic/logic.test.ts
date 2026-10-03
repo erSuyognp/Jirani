@@ -70,6 +70,13 @@ describe("trend", () => {
     expect(computeTrend(cur, [obs({ severity: 3 })]).trend).toBe("same");
     expect(computeTrend(cur, [obs({ severity: 4 })]).trend).toBe("better");
   });
+  it("same-day comparison says earlier today", () => {
+    const r = computeTrend(cur, [obs({ severity: 2, takenAt: "2026-10-04T08:00:00Z" })]);
+    expect(r).toMatchObject({ trend: "worse", days: 0 });
+    const card = buildCard({ kind: "confident", stress: "rust", severity: 3, confidence: 0.95, pMean: [], agreeing: [0, 1] }, r,
+      { causes: [], contextAvailable: false }, A, "en");
+    expect(card.trend).toBe("Worse than the check earlier today.");
+  });
   it("uses the most recent match", () => {
     const h = [obs({ severity: 1, takenAt: "2026-09-10T10:00:00Z" }), obs({ severity: 4, takenAt: "2026-09-30T10:00:00Z" })];
     expect(computeTrend(cur, h).trend).toBe("better");

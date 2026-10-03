@@ -31,6 +31,11 @@ export interface Card {
   footer: string;
 }
 
+function trendText(tr: TrendResult, A: Answers, lang: Lang): string {
+  const key = tr.trend !== "first" && tr.days === 0 ? `${tr.trend}_today` : tr.trend;
+  return fill(pick(A.trend[key], lang, `trend.${key}`), { days: tr.days ?? 0 });
+}
+
 /** Action lookup on (stress, severityBand, trend). */
 export function actionKey(dx: Diagnosis, trend: string | null): string {
   if (dx.kind === "not_sure") return "not_sure.low";
@@ -83,7 +88,7 @@ export function buildCard(
     severity: confident ? pick(A.severity[String(dx.severity)], lang, "severity") : null,
     trendKey,
     trend: confident && tr
-      ? fill(pick(A.trend[tr.trend], lang, `trend.${tr.trend}`), { days: tr.days ?? 0 })
+      ? trendText(tr, A, lang)
       : pick(A.trend.none, lang, "trend.none"),
     actionKey: aKey,
     action: pick(A.action[aKey], lang, `action.${aKey}`),
