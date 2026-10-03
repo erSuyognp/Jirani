@@ -218,3 +218,19 @@ def test_live_approval_end_to_end_with_fake_provider(client, monkeypatch):
     assert all(r["status"] == "would_send" for r in rows if r["status"] != "sent")
     assert fake.sent == ["+254700000001"]
     assert "+254700000001" not in c.get("/").text          # full number never shown on the dashboard
+
+
+def test_cors_origin_with_trailing_slash_is_accepted(monkeypatch):
+    from fastapi.testclient import TestClient
+    monkeypatch.setenv("JIRANI_DB", os.path.join(tempfile.mkdtemp(), "t.db"))
+    monkeypatch.setenv("APP_ORIGIN", "https://jirani-eosin.vercel.app/ , http://localhost:5173")
+    import config
+    importlib.reload(config)
+    assert config.APP_ORIGIN == ["https://jirani-eosin.vercel.app", "http://localhost:5173"]
+    import main
+    importlib.reload(main)
+    r = TestClient(main.app).options("/api/reports", headers={
+        "Origin": "https://jirani-eosin.vercel.app", "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type"})
+    assert r.status_code == 200
+    assert r.headers["access-control-allow-origin"] == "https://jirani-eosin.vercel.app"

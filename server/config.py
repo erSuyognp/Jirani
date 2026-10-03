@@ -15,8 +15,9 @@ OUTBREAK = {
 DB_PATH = os.environ.get("JIRANI_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "jirani.db"))
 SEED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_plots.json")
 # CORS: comma-separated list of app origins, e.g. "https://jirani.pages.dev,http://localhost:5173"
-APP_ORIGIN = [o.strip() for o in os.environ.get(
-    "APP_ORIGIN", "http://localhost:5173,http://localhost:4173").split(",") if o.strip()]
+# Trailing slashes are stripped: browsers send "https://x.vercel.app", never "https://x.vercel.app/".
+APP_ORIGIN = [o.strip().rstrip("/") for o in os.environ.get(
+    "APP_ORIGIN", "http://localhost:5173,http://localhost:4173").split(",") if o.strip().rstrip("/")]
 
 # SMS gateway. See sms_gateway.py and .env.example.
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "mock").lower()          # mock | live
