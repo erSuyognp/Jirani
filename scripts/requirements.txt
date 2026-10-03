@@ -1,0 +1,4 @@
+# scripts/ (audio pack, context pack, demo tools). torch comes from ml/requirements.txt.
+transformers==5.18.0
+lameenc==1.8.4
+requests==2.34.2

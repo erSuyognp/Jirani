@@ -102,6 +102,16 @@
     "footer": { "en": "This tool helps you decide what to check. It does not replace the extension officer.", "sw": "Kifaa hiki kinakusaidia kuamua nini cha kukagua. Hakichukui nafasi ya afisa ugani." }
   },
 
+  "audio": {
+    "note": "Spoken-only variants (pre-recorded clips cannot say the number of days).",
+    "trend": {
+      "first":  { "en": "First check of this block.",  "sw": "Ukaguzi wa kwanza wa kitalu hiki." },
+      "worse":  { "en": "Worse than the last check.",  "sw": "Imezidi kuliko ukaguzi uliopita." },
+      "same":   { "en": "Same as the last check.",     "sw": "Sawa na ukaguzi uliopita." },
+      "better": { "en": "Better than the last check.", "sw": "Imepungua kuliko ukaguzi uliopita." }
+    }
+  },
+
   "sms": {
     "template_confident": {
       "en": "JIRANI {date} Block {block}: {stress}, {severity}, {trend}. Do: {action}. Dont: {donot}. Not sure? Ask a person.",

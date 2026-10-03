@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { STRESS_CLASSES, type StressClass } from "../config";
 import { buildSms, isGsm7, smsUri } from "../handoff/sms";
@@ -234,4 +234,20 @@ describe("content safety scan", () => {
       }
     });
   }
+});
+
+describe("audio pack", () => {
+  it("every possible card's clip sequence exists in the Kiswahili manifest, plus question prompts", async () => {
+    const { cardClipKeys } = await import("../handoff/audio");
+    const manifest = JSON.parse(readFileSync("public/audio/sw/manifest.json", "utf8")).clips as Record<string, string>;
+    for (const { dx, trend } of allDiagnoses()) {
+      const ranking = rankCauses({ diagnosis: dx, trend, sprayed: "no", now: NOW, pack: null });
+      const card = buildCard(dx, trend ? { trend, days: 3, previous: null } : null, ranking, A, "sw");
+      for (const k of cardClipKeys(card)) {
+        expect(manifest[k], `missing clip ${k}`).toBeTruthy();
+        expect(existsSync(`public/audio/sw/${manifest[k]}`)).toBe(true);
+      }
+    }
+    for (const k of ["prompt.block", "prompt.changed", "prompt.sprayed"]) expect(manifest[k]).toBeTruthy();
+  });
 });

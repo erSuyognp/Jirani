@@ -28,6 +28,10 @@ export default defineConfig(({ command }) => ({
         globPatterns: ["**/*.{js,mjs,css,html,svg,png,json,onnx,wasm,mp3,ogg,opus,webm}"],
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
         navigateFallback: "index.html",
+        // Activate a new version as soon as it is installed. Waiting for the page to send SKIP_WAITING
+        // fails if the phone goes offline between download and the next load (seen in testing).
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],
