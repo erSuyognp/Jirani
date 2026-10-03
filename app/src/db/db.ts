@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   blocks: [],
   phone: "",
   showLatency: true,
-  serverUrl: "http://localhost:8000",
+  serverUrl: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
 };
 
 export async function getSettings(): Promise<Settings> {

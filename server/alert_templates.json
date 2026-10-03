@@ -1,0 +1,10 @@
+{
+  "review_status": "DRAFT, not reviewed by an agronomist. Fixed templates only; nothing is generated.",
+  "template": "ONDERA COOP: {stress_name} reported on {n} farms near you this week. Check your coffee leaves. Bring 3 leaves to the coop if you see {sign}.",
+  "stress": {
+    "rust":       { "name": "leaf rust",            "sign": "orange powder" },
+    "miner":      { "name": "leaf miner",           "sign": "brown blotches" },
+    "phoma":      { "name": "brown leaf spot",      "sign": "dark brown spots" },
+    "cercospora": { "name": "cercospora",           "sign": "brown spots, pale centre" }
+  }
+}

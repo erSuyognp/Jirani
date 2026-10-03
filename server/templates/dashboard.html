@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jirani · Cooperative dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --green:#1f5f3a; --ink:#111; --muted:#555; --line:#ddd; --bad:#b3261e; --warn:#fff4d6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#fff; }
+  .banner { background:#6b4fbb; color:#fff; padding:8px 16px; font-weight:700; text-align:center; }
+  header { padding:12px 16px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:20px; color:var(--green); }
+  .muted { color:var(--muted); font-size:13px; }
+  main { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:16px; padding:16px; }
+  @media (max-width: 900px) { main { grid-template-columns: minmax(0,1fr); } }
+  section { border:1px solid var(--line); border-radius:10px; padding:12px; min-width:0; }
+  h2 { margin:0 0 8px; font-size:16px; }
+  #map { height:360px; border-radius:8px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; color:var(--muted); }
+  .scroll { overflow:auto; max-height:420px; }
+  .tag { display:inline-block; padding:0 6px; border-radius:6px; font-size:12px; font-weight:700; }
+  .syn { background:#ece6fb; color:#4b2f9c; }
+  .worse { color:var(--bad); font-weight:700; }
+  .alert { border:2px solid #e0a800; background:var(--warn); border-radius:10px; padding:10px; margin-bottom:10px; }
+  .alert.approved { border-color:#1b7f3b; background:#eaf6ee; }
+  .alert.dismissed { opacity:.6; background:#f4f4f4; border-color:#bbb; }
+  .sms { font-family: ui-monospace, monospace; background:#fff; border:1px dashed #aaa; padding:6px; border-radius:6px; }
+  button { font:inherit; padding:8px 14px; border-radius:8px; border:2px solid var(--green); cursor:pointer; }
+  .approve { background:var(--green); color:#fff; }
+  .dismiss { background:#fff; color:var(--green); }
+  input[type=text] { font:inherit; padding:6px; border:1px solid var(--line); border-radius:6px; }
+  .st-would_send { color:#8a5a00; } .st-sent { color:#1b7f3b; font-weight:700; } .st-failed_fallback_mock { color:var(--bad); }
+  .legend span { display:inline-block; margin-right:10px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:3px; }
+  .full { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<div class="banner">⚠ Demo data is synthetic. Plots, locations and the simulated neighbour reports are not real farms.</div>
+<header>
+  <h1>🌱 Jirani · Ondera Coffee Cooperative (fictional)</h1>
+  <span class="muted">{{ n_reports }} reports ({{ n_synthetic }} synthetic) · SMS mode: <b>{{ sms_mode }}</b> · auto-refresh 15 s</span>
+</header>
+<main>
+  <section>
+    <h2>🗺️ Plots by latest report</h2>
+    <div id="map"></div>
+    <div class="legend muted" id="legend"></div>
+  </section>
+
+  <section>
+    <h2>🚨 Outbreak alerts (a person decides)</h2>
+    {% if not alerts %}<p class="muted">No alerts. A draft appears when ≥ 3 plots within 2 km report the same stress (severity ≥ low) in 14 days.</p>{% endif %}
+    {% for a in alerts %}
+    <div class="alert {{ a.status }}">
+      <b>#{{ a.id }} · {{ a.stress }} · {{ a.n_plots }} plots</b> · <span class="muted">{{ a.status|upper }} · created {{ a.created_at }}</span>
+      <div class="muted">Supporting reports:</div>
+      <ul>
+        {% for r in a.reports %}<li>{{ r.plot_id }} block {{ r.block }} · {{ sev[r.severity or 0] }} · {{ r.trend or "-" }} · conf {{ "%.2f"|format(r.confidence or 0) }} · {{ r.taken_at[:16] }} {% if r.synthetic %}<span class="tag syn">SYNTHETIC</span>{% else %}<span class="tag" style="background:#e5f3ea">from phone</span>{% endif %}</li>{% endfor %}
+      </ul>
+      <div class="muted">Message (fixed template):</div>
+      <div class="sms">{{ a.preview }}</div>
+      {% if a.status == "draft" %}
+      <p class="muted">Would go to {{ a.recipients|length }} neighbouring plots that have not reported {{ a.stress }}: {{ a.recipients|join(", ") }}</p>
+      <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" name="officer" placeholder="Officer name" value="Extension officer">
+        <button class="approve" formaction="/alerts/{{ a.id }}/approve">✅ Approve and send</button>
+        <button class="dismiss" formaction="/alerts/{{ a.id }}/dismiss">✖ Dismiss</button>
+      </form>
+      {% else %}
+      <p class="muted">{{ a.status }} by {{ a.approved_by }} at {{ a.approved_at }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>📋 Visit list: flagged blocks</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>Plot</th><th>Block</th><th>Stress</th><th>Severity</th><th>Trend</th><th>Conf.</th><th>When</th><th></th></tr>
+      {% for r in flagged %}
+      <tr>
+        <td>{{ r.plot_id }}</td><td>{{ r.block }}</td><td>{{ "not sure (tool could not help)" if r.stress == "not_sure" else r.stress }}</td>
+        <td>{{ sev[r.severity] if r.severity is not none else "-" }}</td>
+        <td class="{{ 'worse' if r.trend == 'worse' else '' }}">{{ r.trend or "-" }}</td>
+        <td>{{ "%.2f"|format(r.confidence or 0) }}</td><td>{{ r.taken_at[:16] }}</td>
+        <td>{% if r.synthetic %}<span class="tag syn">SYNTHETIC</span>{% endif %}</td>
+      </tr>
+      {% else %}<tr><td colspan="8" class="muted">No reports yet.</td></tr>{% endfor %}
+    </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>✉️ SMS outbox</h2>
+    <p class="muted">would_send = mock (not sent). sent = real SMS to an allowlisted demo phone. {% for k, v in counts.items() %}{{ k }}: {{ v }} {% endfor %}</p>
+    <div class="scroll">
+    <table>
+      <tr><th>#</th><th>Alert</th><th>Plot</th><th>Status</th><th>Via</th><th>Message</th></tr>
+      {% for m in outbox %}
+      <tr><td>{{ m.id }}</td><td>#{{ m.alert_id }}</td><td>{{ m.plot_id }}</td>
+        <td class="st-{{ m.status }}">{{ "would be sent" if m.status == "would_send" else m.status }}{% if m.error %}<div class="muted">{{ m.error }}</div>{% endif %}</td>
+        <td>{{ m.provider }}{% if m.to_number_masked %}<div class="muted">{{ m.to_number_masked }}</div>{% endif %}</td>
+        <td style="max-width:320px">{{ m.body }}</td></tr>
+      {% else %}<tr><td colspan="6" class="muted">Empty. Messages are written only after an officer approves an alert.</td></tr>{% endfor %}
+    </table>
+    </div>
+  </section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const plots = {{ map_plots|tojson }};
+  const alerts = {{ alerts|map(attribute='status')|list|tojson }};
+  const COL = { rust: "#e8590c", miner: "#7048e8", phoma: "#6b3e1f", cercospora: "#212529", healthy: "#2b8a3e", not_sure: "#adb5bd" };
+  try {
+    const map = L.map("map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    const pts = [];
+    for (const p of plots) {
+      const c = p.stress ? COL[p.stress] : "#ffffff";
+      const r = p.severity ? 6 + p.severity * 2 : 6;
+      L.circleMarker([p.lat, p.lon], { radius: r, color: "#333", weight: 1, fillColor: c, fillOpacity: p.stress ? 0.9 : 0.4 })
+        .bindTooltip(`${p.id}: ${p.stress ?? "no report"}${p.severity ? " sev " + p.severity : ""}`).addTo(map);
+      pts.push([p.lat, p.lon]);
+    }
+    {% for a in alerts if a.status != "dismissed" %}
+    L.circle([{{ a.centre_lat }}, {{ a.centre_lon }}], { radius: {{ a.radius_km }} * 1000, color: "{{ '#1b7f3b' if a.status == 'approved' else '#e0a800' }}", fill: false, dashArray: "6 4" }).addTo(map);
+    {% endfor %}
+    map.fitBounds(pts, { padding: [20, 20] });
+    document.getElementById("legend").innerHTML = Object.entries(COL).map(([k, v]) => `<span><i class="dot" style="background:${v}"></i>${k}</span>`).join("") + "<span>○ no report</span>";
+  } catch (e) { document.getElementById("map").textContent = "Map unavailable offline; see tables."; }
+  // auto refresh unless the officer is typing
+  setInterval(() => { if (!document.activeElement || document.activeElement.tagName !== "INPUT") location.reload(); }, 15000);
+</script>
+</body>
+</html>
