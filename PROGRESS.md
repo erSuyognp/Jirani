@@ -12,8 +12,8 @@ Hackathon deadline: Sunday 4 Oct 2026, 08:00 US Central. Spec: `JIRANI_SPEC.md`.
 | M5 | SMS + Kiswahili audio | ✅ done | MMS-TTS clips 516 KB (CC-BY-NC, flagged); SMS ≤ 160 GSM-7 tested for every card. SW skipWaiting fix. |
 | M6 | Server, outbreak, dashboard, mock outbox | ✅ done | FastAPI + SQLite, draft alert → officer approve → outbox. |
 | M6b | Deploy app + server as two live HTTPS links (mock SMS only) | ✅ done (phone re-check by user) | App https://jirani-eosin.vercel.app · Dashboard https://jirani-coop.onrender.com |
-| M7 | Context pack + cause ranking | ✅ done (redeploy needed) | Real NASA POWER + SoilGrids packs for all 40 plots; ranked causes on the card. See below. |
-| M8 | README, DATA.md, EVIDENCE.md, final deploy, phone test | ⏳ | |
+| M7 | Context pack + cause ranking | ✅ done (live) | Real NASA POWER + SoilGrids packs for all 40 plots; ranked causes on the card. See below. |
+| M8 | README, DATA.md, EVIDENCE.md, final deploy, phone test | 🟡 done except the **real-phone airplane test** (user) | See below. |
 
 ## M6b: deploy (mock SMS only)
 
@@ -88,7 +88,42 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Thresholds (60% / 40% of normal rain, pH < 5.0, 18–26 °C with RH ≥ 75% or above-normal rain) are **draft heuristics, not validated agronomy**.
 - Packs are bundled with the app, so a refresh means rebuilding the packs and redeploying the app. The spec's "built at sync time" is approximated by "built at deploy time".
 - `TODO: verify` the NASA POWER acknowledgement wording and the SoilGrids licence on their sites.
-- **The live app does not have the packs yet.** Commit and push so Vercel rebuilds.
+- Live app serves and precaches all 40 packs (checked 2026-10-03).
+
+## M8: docs, final deploy, fresh-clone check (2026-10-03)
+
+### Done
+- **README.md** covers:
+  - who it is for and the problem in one sentence
+  - features F0–F4 and the handoff
+  - architecture diagram and stack
+  - **measured results table** (from `ml/report/metrics.json`)
+  - exact run commands (app, server, dataset + model reproduction, context and audio packs)
+  - guardrails and known limits
+  - a table of what is synthetic, machine-drafted or unreviewed
+  - the deploy steps
+- **EVIDENCE.md**: facts with source, year, country and URL, each checked where possible in the primary document:
+  - GSMA *Mobile Gender Gap Report 2025* press release: LMIC and Sub-Saharan Africa figures
+  - Kenya *Agricultural Sector Extension Policy* 2023: target of 1:600 by 2029; "ratio … has not improved"
+  - ICO *Country Coffee Profile: Kenya* 2019: about 800,000 smallholders in about 500 cooperatives; cooperatives produced 30,381 of 41,375 t in 2017/18; yields 302 vs. 556 kg/ha
+  - FAOSTAT via OWID: Kenya 0.436 t/ha in 2024 vs. Brazil 1.74
+  - Kenya-specific GSMA figures and the current extension ratio (1:1,000 / 1:1,380) are marked `TODO: verify`.
+- **DATA.md**: complete (BRACOL Mendeley + GitHub, OOD sets, perturbed set, NASA POWER, SoilGrids, TTS model, synthetic registry), each with what it does not cover.
+- **Final deploy**: `main` pushed; the Vercel app serves the M7 context packs (40 precached); the Render server is live in mock SMS mode.
+- **Fresh clone** (`git clone` into a scratch folder, following the README):
+  - App: `npm install` → `npm test` 26/26 → `npm run build` OK.
+  - Server, new venv: `pip install -r server/requirements-dev.txt` → `pytest` 16/16 → uvicorn starts and seeds 40 plots → `simulate_outbreak.py --all` creates a draft alert → dashboard 200.
+  - Training reproduction was not re-run from the clone (it needs the BRACOL download); the commands are the ones used for M0–M2.
+
+### Waiting on the user
+- [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
+  1. Open https://jirani-eosin.vercel.app online and wait for "Offline ready ✓".
+  2. Turn on airplane mode.
+  3. Do a 3-leaf check, plus one bad photo → "Not sure".
+  4. Open the SMS link, then play the audio.
+  5. Airplane mode off → Sync → Send → see it on https://jirani-coop.onrender.com.
+- [ ] Note the phone's per-leaf inference times (Settings → show inference time) and replace `TODO: fill in` in README "Measured results".
+- [ ] Resolve or drop the `TODO: verify` items in EVIDENCE.md and DATA.md before quoting them in the video.
 
 ## Open TODOs (cross-milestone)
 - `TODO: verify` BRACOL paper volume/article number (DATA.md); meaning of stress code 5.
