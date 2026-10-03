@@ -14,5 +14,5 @@ services:
         value: 3.11.9
       - key: SMS_PROVIDER          # mock only in the hackathon build: alerts are written as "would be sent"
         value: mock
-      - key: APP_ORIGIN            # the Vercel app URL, e.g. https://jirani-xyz.vercel.app
+      - key: APP_ORIGIN            # the Vercel app URL, e.g. https://jirani-xyz.vercel.app,https://localhost (Android app)
         sync: false

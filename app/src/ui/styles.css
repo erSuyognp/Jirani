@@ -1,6 +1,8 @@
 :root {
-  --green: #1f5f3a;
-  --green-2: #2e7d4f;
+  /* World Bank-inspired palette: deep navy with a bright cyan accent */
+  --brand: #002244;
+  --brand-2: #009fda;
+  --brand-tint: #e6f5fb;
   --bg: #ffffff;
   --ink: #111111;
   --muted: #555555;
@@ -9,24 +11,26 @@
   --bad: #b3261e;
   --warn-bg: #fff4d6;
   --unsure-bg: #fdecea;
-  --card-bg: #f6f8f6;
+  --card-bg: #f4f7fa;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); }
 body { font: 18px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 .app { max-width: 560px; margin: 0 auto; padding: 0 16px 32px; }
-header { position: sticky; top: 0; background: var(--bg); display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); z-index: 2; flex-wrap: wrap; }
-.brand { font-weight: 800; font-size: 20px; color: var(--green); margin-right: auto; }
-.dot { font-size: 13px; color: var(--muted); }
-.lang button { min-height: 40px; min-width: 44px; border: 2px solid var(--green); background: #fff; color: var(--green); font-weight: 700; }
-.lang button.on { background: var(--green); color: #fff; }
+header { position: sticky; top: 0; background: var(--brand); color: #fff; display: flex; align-items: center; gap: 8px; padding: 10px 16px; margin: 0 -16px; border-bottom: 4px solid var(--brand-2); z-index: 2; flex-wrap: wrap; }
+.brand { font-weight: 800; font-size: 20px; color: #fff; margin-right: auto; letter-spacing: 0.01em; }
+.dot { font-size: 13px; color: #cfe0ee; }
+header .ghost { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.lang button { min-height: 40px; min-width: 44px; border: 2px solid #fff; background: transparent; color: #fff; font-weight: 700; }
+.lang button.on { background: #fff; color: var(--brand); }
 .lang button:first-child { border-radius: 8px 0 0 8px; }
 .lang button:last-child { border-radius: 0 8px 8px 0; }
 main { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
 h2, h3 { margin: 8px 0 0; }
 button, .btn { font: inherit; cursor: pointer; }
-.big { min-height: 64px; width: 100%; border-radius: 14px; border: 2px solid var(--green); background: #fff; color: var(--green); font-size: 20px; font-weight: 700; padding: 10px; position: relative; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-.big.primary { background: var(--green); color: #fff; }
+.big { min-height: 64px; width: 100%; border-radius: 14px; border: 2px solid var(--brand); background: #fff; color: var(--brand); font-size: 20px; font-weight: 700; padding: 10px; position: relative; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.big.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.big.primary:active { background: var(--brand-2); border-color: var(--brand-2); }
 .big.danger { border-color: var(--bad); color: var(--bad); }
 .big:disabled { opacity: 0.45; cursor: not-allowed; }
 .ghost { background: none; border: 1px solid var(--line); border-radius: 10px; min-height: 44px; padding: 6px 12px; color: var(--ink); }
@@ -49,10 +53,11 @@ input[type="checkbox"] { width: 28px; height: 28px; }
 .thumb.ok { border: 3px solid var(--ok); }
 .thumb.bad { border: 3px solid var(--bad); }
 .guide { background: #fff; border: 2px solid var(--line); border-radius: 12px; aspect-ratio: 2 / 1; display: flex; align-items: center; justify-content: center; }
-.leaf-outline { width: 80%; height: 55%; border: 4px dashed var(--green-2); border-radius: 50% 50% 50% 50% / 100% 100% 100% 100%; }
+.leaf-outline { width: 80%; height: 55%; border: 4px dashed var(--brand-2); border-radius: 50% 50% 50% 50% / 100% 100% 100% 100%; }
 .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
 .choice { min-height: 56px; border-radius: 12px; border: 2px solid var(--line); background: #fff; font-size: 17px; color: var(--ink); }
-.choice.on { border-color: var(--green); background: #e5f3ea; font-weight: 700; }
+.choice.on { border-color: var(--brand-2); background: var(--brand-tint); font-weight: 700; }
+.slot.hero { border-top: 4px solid var(--brand-2); }
 .card .slot, .slot { background: var(--card-bg); border-radius: 12px; padding: 10px 12px; border: 1px solid var(--line); }
 .card.unsure .hero { background: var(--unsure-bg); border-color: var(--bad); }
 .label { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
@@ -77,13 +82,13 @@ footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line)
 .packet { background: #f1f1f1; padding: 10px; border-radius: 10px; font-size: 13px; overflow-x: auto; max-height: 50vh; }
 .strip { display: flex; gap: 6px; align-items: flex-end; height: 90px; overflow-x: auto; padding: 4px 0; }
 .bar { width: 34px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; flex: none; }
-.bar .fill { width: 100%; background: var(--green-2); border-radius: 6px 6px 0 0; }
+.bar .fill { width: 100%; background: var(--brand-2); border-radius: 6px 6px 0 0; }
 .bar .fill.ns { background: #bbb; }
 .bar span { font-size: 14px; }
 .hist { margin: 6px 0 0; padding-left: 18px; font-size: 15px; }
 .demo { background: #6b4fbb; color: #fff; border-radius: 6px; padding: 0 6px; font-size: 12px; margin-right: 6px; }
 .center { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; text-align: center; }
-.spinner { width: 36px; height: 36px; border: 4px solid #cfe3d6; border-top-color: var(--green); border-radius: 50%; animation: spin 0.9s linear infinite; display: inline-block; }
+.spinner { width: 36px; height: 36px; border: 4px solid #cde6f3; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.9s linear infinite; display: inline-block; }
 .small-spin { width: 18px; height: 18px; border-width: 3px; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 details summary { cursor: pointer; min-height: 32px; }

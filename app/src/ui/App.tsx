@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { STRESS_CLASSES } from "../config";
 import {
   addObservation, allObservations, clearAll, DEFAULT_SETTINGS, getSettings, saveSettings, type Packet, type Settings,
@@ -66,6 +67,11 @@ export default function App() {
         setReady("error");
       }
     })();
+    // Android app: everything ships inside the APK, so it is offline-ready from the start and needs no service worker.
+    if (Capacitor.isNativePlatform()) {
+      setOfflineReady(true);
+      return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+    }
     // service worker: "Offline ready" once everything is precached
     import("virtual:pwa-register").then(({ registerSW }) => {
       registerSW({ immediate: true, onOfflineReady: () => { setOfflineReady(true); try { localStorage.setItem("jirani-offline", "1"); } catch { /* ignore */ } } });

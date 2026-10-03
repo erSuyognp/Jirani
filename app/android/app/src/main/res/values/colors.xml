@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same navy/cyan palette as app/src/ui/styles.css -->
+    <color name="colorPrimary">#002244</color>
+    <color name="colorPrimaryDark">#002244</color>
+    <color name="colorAccent">#009FDA</color>
+</resources>

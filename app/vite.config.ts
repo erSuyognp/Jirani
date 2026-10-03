@@ -17,7 +17,7 @@ export default defineConfig(({ command }) => ({
         name: "Jirani",
         short_name: "Jirani",
         description: "Offline coffee leaf check: diagnose, track, warn.",
-        theme_color: "#1f5f3a",
+        theme_color: "#002244",
         background_color: "#ffffff",
         display: "standalone",
         start_url: base,

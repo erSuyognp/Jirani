@@ -106,6 +106,21 @@ npm run build        # production PWA in app/dist (set VITE_API_URL to point at 
 npm run preview      # serve dist on http://localhost:4173 (service worker active: test offline here)
 ```
 
+### Android app (Capacitor)
+The same web build, wrapped as a native Android app. The model, wasm, audio and context packs are bundled in the
+APK, so it works offline from the first launch (no service worker). It talks to the live server set in
+`app/.env.android`. Audio sharing uses the native share sheet; the SMS link opens the phone's SMS app.
+
+Prerequisites: JDK 21 (`JAVA_HOME`), Android SDK with platform 36 (`app/android/local.properties` → `sdk.dir=...`).
+```bash
+cd app
+npm run build:android                  # vite build --mode android + cap sync android
+cd android && ./gradlew assembleDebug  # → app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+For **Sync → Send** from the APK, the server must allow the app's WebView origin: add `https://localhost` to
+`APP_ORIGIN` (see Deploy → Connect them).
+
 ### Server
 ```bash
 python -m venv .venv
@@ -236,7 +251,7 @@ output `dist`, environment variable `VITE_API_URL`. `app/public/_headers` keeps 
 ### 3. Connect them (CORS)
 
 1. Render → `jirani-coop` → **Environment** → set `APP_ORIGIN` = your app URL, e.g. `https://jirani-xyz.vercel.app`
-   (comma-separate several origins if needed). **Save Changes**; Render restarts the service.
+   (comma-separate several origins if needed; add `https://localhost` for the Android app). **Save Changes**; Render restarts the service.
 2. On a phone, open the app URL once while online. Wait for **"Offline ready ✓"** on Home.
 3. Do a check, open **Sync**, press **Send**. The report appears on the dashboard.
 4. Optional: post the synthetic neighbours so the phone's report tips an alert:

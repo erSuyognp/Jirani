@@ -1,5 +1,8 @@
 // Kiswahili audio: the card is spoken by concatenating pre-recorded clips. No speech is generated at runtime.
 // Clips are machine-generated at build time (scripts/build_audio.py) and need native speaker review.
+import { Capacitor } from "@capacitor/core";
+import { Directory, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import type { Card } from "../logic/card";
 
 const BASE = import.meta.env.BASE_URL;
@@ -95,6 +98,11 @@ function wav(pcm: Float32Array, rate: number): ArrayBuffer {
 
 /** Share via Web Share (Bluetooth etc.) where supported; otherwise download. */
 export async function shareOrDownload(file: File): Promise<"shared" | "downloaded"> {
+  // Android app: the WebView has no Web Share or downloads, so write the file to the cache and use the native share sheet.
+  if (Capacitor.isNativePlatform()) {
+    await shareNative(file);
+    return "shared";
+  }
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.canShare?.({ files: [file] })) {
     await nav.share({ files: [file], title: "Jirani" });
@@ -107,4 +115,12 @@ export async function shareOrDownload(file: File): Promise<"shared" | "downloade
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return "downloaded";
+}
+
+async function shareNative(file: File): Promise<void> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const { uri } = await Filesystem.writeFile({ path: file.name, data: btoa(bin), directory: Directory.Cache });
+  await Share.share({ title: "Jirani", files: [uri] });
 }
