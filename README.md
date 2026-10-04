@@ -3,7 +3,7 @@
 says what is likely wrong (or "not sure, ask a person"), hands the result to a basic phone, and lets the cooperative
 warn neighbouring farms.
 
-**Live:** farmer app <https://jirani-eosin.vercel.app> · cooperative dashboard <https://jirani-coop.onrender.com> (demo data is synthetic)
+**Live:** farmer app <https://jirani-eosin.vercel.app> · project page <https://jirani-coop.onrender.com> · cooperative dashboard <https://jirani-coop.onrender.com/dashboard> (demo data is synthetic)
 
 Hack-Nation 7th Global AI Hackathon, Challenge 04 *Small AI for Development* (World Bank Youth Summit), Agriculture.
 "Jirani" means "neighbour" in Kiswahili.
@@ -130,8 +130,8 @@ a store release still needs a signing key and a signed `bundleRelease`.
 python -m venv .venv
 .venv/Scripts/activate                              # Windows; on macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements-dev.txt
-uvicorn main:app --app-dir server --port 8000      # dashboard http://localhost:8000
-python -m pytest server -q                          # 16 tests: outbreak rule, approval, privacy, SMS allowlist, CORS
+uvicorn main:app --app-dir server --port 8000      # landing page http://localhost:8000, dashboard /dashboard
+python -m pytest server -q                          # 18 tests: outbreak rule, approval, privacy, SMS allowlist, CORS, pages
 python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbour rust reports (--all adds OND-0017)
 ```
 
@@ -202,10 +202,10 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
 
 | Item | Status |
 |---|---|
-| Cooperative registry (40 plots, locations), "Ondera" | **Synthetic.** Fictional cooperative, made-up coordinates in central Kenya. |
+| Cooperative registry (40 plots), "Ondera" | **Synthetic.** Fictional cooperative. The plot points are random points within about 3 km of a centre in a **real** smallholder coffee-growing area (near Wamagana, Nyeri County, Kenya). They are not real farms; see DATA.md. |
 | Neighbour reports from `simulate_outbreak.py` | **Synthetic**, labelled on the dashboard |
 | Perturbed test set; non-leaf OOD images | **Synthetic** |
-| Context packs | Real NASA POWER / SoilGrids data **for synthetic locations** |
+| Context packs | Real NASA POWER / SoilGrids data for the **synthetic plot points** (real area, not real farms) |
 | Agronomy text (actions, do-nots, causes, alert templates) | **Draft, not reviewed by an agronomist** (`review_status` in `answers.json`) |
 | Kiswahili text | **Machine-drafted, needs native speaker review** |
 | Kiswahili audio | **Machine-generated** (Meta MMS-TTS, **CC-BY-NC-4.0**, non-commercial: replace before deployment); not reviewed by a native speaker |
@@ -233,7 +233,7 @@ limits before relying on them.
 5. Render asks for `APP_ORIGIN` (marked `sync: false`). For now enter `http://localhost:5173`; you will change it in step 3.
 6. Click **Apply**. Wait for the deploy to show **Live**.
 7. Open `https://<your-service>.onrender.com/api/health`. You should see `{"ok":true,"plots":40,"sms_provider":"mock"}`.
-   The dashboard is at `https://<your-service>.onrender.com/`.
+   The landing page is at `https://<your-service>.onrender.com/` and the dashboard at `/dashboard`.
 
 Start command (also in `render.yaml`): `uvicorn main:app --app-dir server --host 0.0.0.0 --port $PORT`.
 

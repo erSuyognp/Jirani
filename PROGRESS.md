@@ -75,7 +75,7 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
   - 90-day rain 131.1 mm vs. normal 262.9 mm (≈ 50%). This fires the draft `dry_spell` cause (< 60%).
   - 30-day rain 68.0 vs. 86.1 mm.
   - 30-day mean temperature 15.4 °C and humidity 80.1%. 15.4 °C is below the draft 18–26 °C band, so there is no "warm and wet" note for rust.
-  - Soil pH 6.2, so there is no acidity cause. pH across the 40 plots is 6.0–6.2.
+  - Soil pH 6.0, so there is no acidity cause. pH across the 40 plots is 5.8–6.2. (Rebuilt after the plots moved to the Nyeri coffee area; at the first location these were 6.2 and 6.0–6.2. The weather numbers did not change: same NASA POWER cell.)
 - **Card check (dev app, OND-0017 pack):**
   - Confident rust, sprayed = yes → disease (very high) › dry spell › sprayed recently › not covered.
   - Healthy leaves → dry spell › not covered.
@@ -137,6 +137,16 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Checked on the Galaxy A14 over adb: gallery → 3 leaves → result (270 / 88 / 89 ms) → save; back button and both dialogs; Kiswahili and English; the SMS button opens the Android app chooser (no message sent).
 - Not checked on the phone: first-launch welcome/setup (browser only; the phone kept its data), the camera button, audio playback, share sheet, Sync → Send with the new screen, airplane mode.
 - New Kiswahili UI strings are machine-drafted like the rest.
+
+### Landing page, dashboard redesign, real coffee area (2026-10-03)
+- Server: `/` is now a landing page (problem with sourced facts, how it works, measured results, guardrails and limits, two phone screenshots); the dashboard moved to **`/dashboard`**. Approve / Dismiss redirect there.
+- Dashboard: same navy/cyan design as the app, KPI tiles, satellite / street-map toggle (Esri World Imagery, OpenStreetMap), popups, visit list with severity bars, outbox. The "Demo data is synthetic" banner, "fictional" label and "would be sent" wording are kept. The map view and layer survive the 15 s refresh.
+- Registry: the 40 synthetic plot points moved from Nyeri town centre to a real smallholder coffee area near Wamagana, Nyeri County (centre -0.4920, 36.9480; source notes in DATA.md). Offsets between plots are unchanged, so the demo cluster is the same (OND-0022 0.79 km, OND-0039 1.00 km, 9 recipients). The points are still random and not real farms.
+- `sync_registry` updates plot coordinates in an existing database from `seed_plots.json` on startup. Alerts already stored in an old local database keep their old centre.
+- Context packs rebuilt for the new coordinates (40/40, soil pH 5.8–6.2). The app and APK bundle the new `plots.json` and packs.
+- Tests: server 18/18 (new: landing + dashboard render, registry sync), app 26/26.
+- Checked locally on port 8010 with a fresh database: landing page (desktop width) and dashboard (desktop and 500 px wide) render, simulate_outbreak → draft alert → Approve → 9 "would be sent" rows.
+- Not checked: the live Render deploy (needs a push), the landing page at phone width, the "Map" street layer. The rebuilt APK was not installed (the phone was no longer on adb).
 
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):

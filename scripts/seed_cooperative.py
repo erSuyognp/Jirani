@@ -1,11 +1,15 @@
-"""SYNTHETIC cooperative registry for the demo. Not real farms, not real locations.
+"""SYNTHETIC cooperative registry for the demo. Not real farms. The AREA is real, the plot points are not.
 
 Writes:
   server/seed_plots.json           -> loaded into SQLite by server/main.py on first start
   app/public/content/plots.json    -> cached plot list for the app's setup screen
 
-40 plots of the fictional "Ondera Coffee Cooperative", scattered within ~3 km of a made-up centre
-in the central Kenya highlands. Location = the cooperative's registry centroid, never device GPS.
+40 plots of the fictional "Ondera Coffee Cooperative", scattered at random within ~3 km of a centre in a real
+smallholder coffee-growing area: the Aberdare slopes south of Nyeri town (near Wamagana, Tetu Subcounty), Nyeri
+County, Kenya. OpenStreetMap maps a smallholder coffee factory (wet mill) about 0.5 km from the centre, which is
+how the area was chosen (sources in DATA.md). The points are random; they are not snapped to real field boundaries
+and do not stand for any real farm or cooperative.
+Location = the cooperative's registry centroid, never device GPS.
 
 Usage: python scripts/seed_cooperative.py
 """
@@ -15,7 +19,8 @@ import os
 import random
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CENTRE = (-0.4200, 36.9500)  # SYNTHETIC demo centre, central Kenya highlands
+CENTRE = (-0.4920, 36.9480)  # real coffee-growing area near Wamagana, Nyeri County; the plots around it are SYNTHETIC
+AREA = "Coffee-growing area near Wamagana, Nyeri County, Kenya"
 N = 40
 DEMO_PLOT = "OND-0017"
 
@@ -39,7 +44,9 @@ def main():
             blocks = ["A", "B", "C", "D"][: rng.randint(2, 4)]
         plots.append({"plot_id": pid, "lat": round(lat, 5), "lon": round(lon, 5), "blocks": blocks})
     doc = {"synthetic": True,
-           "note": "SYNTHETIC demo registry. Fictional Ondera Coffee Cooperative. Not real farms or locations.",
+           "note": "SYNTHETIC demo registry. Fictional Ondera Coffee Cooperative. Random points in a real coffee-growing "
+                   "area; not real farms.",
+           "area": AREA,
            "cooperative": "Ondera Coffee Cooperative (fictional)", "plots": plots}
     for path in [os.path.join(ROOT, "server", "seed_plots.json"),
                  os.path.join(ROOT, "app", "public", "content", "plots.json")]:

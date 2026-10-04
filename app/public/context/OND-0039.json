@@ -1,6 +1,6 @@
 {
  "plotId": "OND-0039",
- "builtAt": "2026-10-03T21:38:57Z",
+ "builtAt": "2026-10-03T23:44:49Z",
  "source": {
   "weather": "NASA POWER daily point API (community AG), PRECTOTCORR / T2M / RH2M",
   "soil": "ISRIC SoilGrids v2.0, phh2o 0-5cm mean"

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Jirani · Offline leaf check for coffee farmers{% endblock %}
+{% block head %}<meta name="description" content="Jirani checks three coffee leaves on a phone without internet, hands the result to a basic phone, and lets the cooperative warn neighbouring farms.">{% endblock %}
+{% block style %}
+  body { background:var(--surface); }
+  .nav { position:sticky; top:0; z-index:5; background:var(--brand); }
+  .nav .wrap { display:flex; align-items:center; gap:20px; padding-top:12px; padding-bottom:12px; }
+  .nav nav { margin-left:auto; display:flex; align-items:center; gap:22px; }
+  .nav nav a:not(.btn) { color:#cfe0ee; text-decoration:none; font-weight:600; font-size:15px; }
+  .nav nav a:not(.btn):hover { color:#fff; }
+  .hero { background:linear-gradient(180deg, var(--brand), #06345c); color:#fff; overflow:hidden; }
+  .hero .wrap { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:40px; align-items:center; padding-top:56px; }
+  .eyebrow { display:inline-flex; align-items:center; gap:8px; color:#7fd3f5; font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+  .hero h1 { margin:14px 0 16px; font-size:clamp(40px, 6vw, 64px); line-height:1.05; letter-spacing:-.01em; }
+  .hero p.lead { font-size:19px; color:#d7e6f3; max-width:34em; }
+  .cta { display:flex; flex-wrap:wrap; gap:12px; margin:28px 0 14px; }
+  .cta .btn { min-height:52px; padding:10px 22px; font-size:17px; }
+  .hero .fine { font-size:13.5px; color:#a9c3d8; padding-bottom:56px; }
+  .phones { display:flex; justify-content:center; gap:22px; align-self:end; }
+  .phone { width:min(250px, 44%); border:8px solid #0b1728; border-bottom:0; border-radius:34px 34px 0 0; overflow:hidden; background:#0b1728; box-shadow:0 24px 60px rgba(0,0,0,.45); }
+  .phone img { display:block; width:100%; height:auto; aspect-ratio:540 / 1050; object-fit:cover; object-position:top; }
+  .phone:first-child { margin-top:48px; }
+  .band { background:var(--bg); border-bottom:1px solid var(--line); }
+  .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; padding-top:28px; padding-bottom:28px; }
+  .stats b { display:block; font-size:30px; line-height:1.1; color:var(--brand); }
+  .stats span { display:block; margin-top:4px; font-size:14px; color:var(--muted); }
+  section.block { padding:64px 0; }
+  section.block.alt { background:var(--bg); }
+  .kicker { color:var(--accent-ink); font-size:13.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
+  h2 { margin:8px 0 12px; font-size:clamp(26px, 3.4vw, 36px); line-height:1.15; }
+  .sub { max-width:44em; color:var(--ink-2); font-size:17.5px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:28px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; margin-top:28px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:20px; }
+  .card h3 { margin:12px 0 6px; font-size:18px; }
+  .card p { color:var(--ink-2); font-size:15.5px; }
+  .ico { width:46px; height:46px; border-radius:13px; background:var(--brand-tint); color:var(--accent-ink); display:grid; place-items:center; }
+  .fact b { display:block; font-size:19px; line-height:1.3; }
+  .fact cite { display:block; margin-top:10px; font-size:13px; font-style:normal; color:var(--muted); }
+  .step { position:relative; }
+  .step .n { width:36px; height:36px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  .two { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:28px; }
+  .checks { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .checks li { display:flex; gap:10px; font-size:15.5px; color:var(--ink-2); }
+  .checks .i { margin-top:3px; }
+  .card.good .i { color:var(--ok); }
+  .card.limits .i { color:var(--warn-fill); }
+  table.results { width:100%; margin-top:24px; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden; font-size:15.5px; }
+  .results th, .results td { text-align:left; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .results tr:last-child td { border-bottom:0; }
+  .results td:last-child { font-weight:700; white-space:nowrap; }
+  .results .down td:last-child { color:var(--bad); }
+  .final { background:var(--brand); color:#fff; text-align:center; padding:56px 0; }
+  .final p { color:#cfe0ee; max-width:38em; margin:0 auto; }
+  .final .cta { justify-content:center; margin-bottom:0; }
+  @media (max-width:900px) {
+    .hero .wrap { grid-template-columns:minmax(0,1fr); padding-top:36px; }
+    .hero .fine { padding-bottom:28px; }
+    .grid3, .grid4, .two { grid-template-columns:minmax(0,1fr); }
+    .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .nav nav a:not(.btn) { display:none; }
+    section.block { padding:44px 0; }
+  }
+  @media (min-width:901px) and (max-width:1100px) { .grid4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+{% endblock %}
+{% block body %}
+<header class="nav"><div class="wrap">
+  <a class="brand" href="/">{{ logo(28) }} Jirani</a>
+  <nav>
+    <a href="#how">How it works</a><a href="#results">Results</a><a href="#limits">Guardrails and limits</a>
+    <a class="btn accent" href="/dashboard">Cooperative dashboard</a>
+  </nav>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="eyebrow">{{ icon("leaf", 16) }} Offline leaf check for coffee farmers</span>
+    <h1>Diagnose, track, warn.</h1>
+    <p class="lead">Jirani checks three coffee leaves on a phone the family already has, with no internet. It says what is
+      likely wrong, or says "not sure, ask a person". The result goes to a basic phone, and the cooperative can warn
+      neighbouring farms.</p>
+    <div class="cta">
+      <a class="btn accent" href="/dashboard">{{ icon("map", 20) }} Open the cooperative dashboard</a>
+      <a class="btn ghost" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Try the farmer app</a>
+    </div>
+    <p class="fine">Hackathon prototype. "Jirani" means "neighbour" in Kiswahili. Demo data is synthetic.</p>
+  </div>
+  <div class="phones">
+    <div class="phone"><img src="/static/img/app-home.jpg" alt="Jirani home screen: a Check three leaves button and the latest result for each block" width="540" height="1204"></div>
+    <div class="phone"><img src="/static/img/app-result.jpg" alt="Jirani result card: Leaf rust, high confidence, severity, heatmaps and one action for the week" width="540" height="1204"></div>
+  </div>
+</div></section>
+
+<div class="band"><div class="wrap stats">
+  <div><b>1.04 MB</b><span>model, runs on the phone</span></div>
+  <div><b>90.1%</b><span>stress accuracy on 253 held-out test leaves (Brazilian dataset)</span></div>
+  <div><b>82–204 ms</b><span>per leaf on a Samsung Galaxy A14</span></div>
+  <div><b>0</b><span>AI-generated sentences: every answer comes from a fixed list</span></div>
+</div></div>
+
+<section class="block"><div class="wrap">
+  <div class="kicker">The problem</div>
+  <h2>Yields are falling, and expert advice is far away</h2>
+  <p class="sub">A smallholder coffee farmer whose yields are dropping has no quick, trustworthy way to find out what is
+    wrong with her trees, and no way to warn her neighbours. She may not own a smartphone or have internet.</p>
+  <div class="grid3">
+    <div class="card fact"><b>About 800,000 smallholders grow Kenya's coffee, in about 500 cooperative societies.</b>
+      <cite>International Coffee Organization, <a href="https://www.ico.org/documents/cy2018-19/icc-124-7e-profile-kenya.pdf" rel="noopener">Country Coffee Profile: Kenya</a>, 2019</cite></div>
+    <div class="card fact"><b>Kenya's extension policy says the ratio of extension staff to farmers "has not improved". Its target is one officer per 600 farmers by 2029.</b>
+      <cite>Ministry of Agriculture and Livestock Development, <a href="https://kilimo.go.ke/wp-content/uploads/2024/10/KENYA-AGRICULTURAL-SECTOR-EXTENSION-POLICY-2023.pdf" rel="noopener">Agricultural Sector Extension Policy</a>, 2023</cite></div>
+    <div class="card fact"><b>61% of women in low- and middle-income countries own a smartphone. About 945 million do not.</b>
+      <cite>GSMA, <a href="https://www.gsma.com/newsroom/press-release/progress-closing-the-mobile-internet-gender-gap-stalls-in-lmics-gsma-mobile-gender-gap-report-2025/" rel="noopener">Mobile Gender Gap Report 2025</a></cite></div>
+  </div>
+</div></section>
+
+<section class="block alt" id="how"><div class="wrap">
+  <div class="kicker">How it works</div>
+  <h2>Built around the phone that is actually there</h2>
+  <p class="sub">The household smartphone is home only some of the time, and there is no Wi-Fi. So the sample comes to the phone, and the cooperative is the hub.</p>
+  <div class="grid4">
+    <div class="card step"><div class="n">1</div><h3>Three leaves come home</h3><p>The farmer picks three leaves from one block and lays each one on white paper.</p></div>
+    <div class="card step"><div class="n">2</div><h3>The phone checks them offline</h3><p>A small model on the phone reads the photos. It answers only when it is confident and at least two leaves agree.</p></div>
+    <div class="card step"><div class="n">3</div><h3>The result reaches a basic phone</h3><p>One prefilled SMS, which the farmer sends herself, plus spoken Kiswahili audio.</p></div>
+    <div class="card step"><div class="n">4</div><h3>The cooperative warns neighbours</h3><p>Reports sync when there is signal. Clusters become draft alerts, and an officer approves each one.</p></div>
+  </div>
+</div></section>
+
+<section class="block"><div class="wrap">
+  <div class="kicker">What it does</div>
+  <h2>One card, seven fixed slots</h2>
+  <div class="grid3">
+    <div class="card"><div class="ico">{{ icon("scan", 24) }}</div><h3>Offline diagnosis that can refuse</h3><p>Leaf miner, leaf rust, brown leaf spot, cercospora or healthy. If the photos are poor or the leaves disagree, the only answer is "Not sure. Ask a person. Do not spray."</p></div>
+    <div class="card"><div class="ico">{{ icon("trend", 24) }}</div><h3>Severity and trend</h3><p>How bad it is, and whether the block is worse, the same or better than the last check within six weeks.</p></div>
+    <div class="card"><div class="ico">{{ icon("layers", 24) }}</div><h3>Where it looked</h3><p>A heatmap on each leaf shows the area the model used, so a person can judge the result.</p></div>
+    <div class="card"><div class="ico">{{ icon("cloud", 24) }}</div><h3>Likely causes of the yield drop</h3><p>Transparent rules combine the leaf result with cached rainfall and soil estimates, and say what the tool cannot see.</p></div>
+    <div class="card"><div class="ico">{{ icon("volume", 24) }}</div><h3>Handoff to a basic phone</h3><p>A single-part SMS of 160 characters or fewer, and Kiswahili audio built from pre-recorded clips.</p></div>
+    <div class="card"><div class="ico">{{ icon("bell", 24) }}</div><h3>Neighbour early warning</h3><p>Three or more plots within 2 km reporting the same problem in 14 days create a draft alert on the <a href="/dashboard">dashboard</a>.</p></div>
+  </div>
+</div></section>
+
+<section class="block alt" id="results"><div class="wrap">
+  <div class="kicker">Measured results</div>
+  <h2>The numbers, including the drops</h2>
+  <p class="sub">Measured on the exported model that ships in the app. Test set: 253 leaves from the BRACOL dataset (Brazil), held out from training.</p>
+  <table class="results">
+    <tr><td>Stress accuracy on the clean test set</td><td>90.1%</td></tr>
+    <tr><td>Severity within one level</td><td>98.8%</td></tr>
+    <tr><td>Three-leaf rule: answers given / accuracy when it answers (82 simulated triples)</td><td>75.6% / 100%</td></tr>
+    <tr class="down"><td>Accuracy on synthetic messy photos (blur, low light, colour cast, cluttered background)</td><td>77.2%</td></tr>
+    <tr class="down"><td>Refuses leaves of other crops: single photo / three photos</td><td>48% / 78%</td></tr>
+    <tr><td>Model size</td><td>1.04 MB</td></tr>
+  </table>
+</div></section>
+
+<section class="block" id="limits"><div class="wrap">
+  <div class="kicker">Guardrails and limits</div>
+  <h2>What it will not do, and what is not proven</h2>
+  <div class="two">
+    <div class="card good"><div class="ico" style="background:var(--ok-bg);color:var(--ok)">{{ icon("shield", 24) }}</div><h3>Guardrails</h3>
+      <ul class="checks">
+        <li>{{ icon("check") }}<span><b>A person decides.</b> The farmer presses Send. Alerts are drafts until an officer approves them.</span></li>
+        <li>{{ icon("check") }}<span><b>Photos never leave the phone.</b> A report carries the plot, block and result only; the server rejects anything else.</span></li>
+        <li>{{ icon("check") }}<span><b>No chemicals.</b> No product names and no doses, checked by an automated test.</span></li>
+        <li>{{ icon("check") }}<span><b>Fixed answers only.</b> No language model runs anywhere in the app or the server.</span></li>
+      </ul></div>
+    <div class="card limits"><div class="ico" style="background:var(--warn-bg);color:var(--warn)">{{ icon("alert", 24) }}</div><h3>Known limits</h3>
+      <ul class="checks">
+        <li>{{ icon("alert") }}<span><b>Trained on Brazilian leaves.</b> Accuracy on Kenyan varieties and field conditions is unknown.</span></li>
+        <li>{{ icon("alert") }}<span><b>Draft guidance.</b> The advice text is not reviewed by an agronomist, and the Kiswahili is machine-drafted.</span></li>
+        <li>{{ icon("alert") }}<span><b>Synthetic demo data.</b> The cooperative is fictional; its {{ n_plots }} plot points are random points in a real coffee-growing area{% if area %} ({{ area|replace("Coffee-growing area near ", "near ") }}){% endif %}.</span></li>
+        <li>{{ icon("alert") }}<span><b>Mock SMS.</b> Neighbour alerts are recorded as "would be sent"; no real message goes out.</span></li>
+      </ul></div>
+  </div>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2>See it working</h2>
+  <p>The dashboard shows the plots on a map, the officer's visit list, draft alerts and the message outbox.</p>
+  <div class="cta">
+    <a class="btn accent" href="/dashboard">{{ icon("map", 20) }} Open the dashboard</a>
+    <a class="btn ghost" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Open the farmer app</a>
+    <a class="btn ghost" href="{{ repo_url }}" rel="noopener">{{ icon("code", 20) }} Source code</a>
+  </div>
+</div></section>
+<footer class="site-foot"><div class="wrap">
+  <span>Jirani · Hack-Nation Global AI Hackathon, Small AI for Development (Agriculture)</span>
+  <span>Sources and data notes are in the repository: EVIDENCE.md, DATA.md</span>
+</div></footer>
+{% endblock %}

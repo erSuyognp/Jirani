@@ -54,6 +54,26 @@ def test_seeded_on_startup(client):
     assert len(c.get("/api/plots").json()["plots"]) == 40
 
 
+def test_landing_page_and_dashboard_render(client):
+    c, _ = client
+    home = c.get("/")
+    assert home.status_code == 200 and 'href="/dashboard"' in home.text
+    dash = c.get("/dashboard")
+    assert dash.status_code == 200 and "Demo data is synthetic" in dash.text   # spec: visible banner
+    assert c.get("/static/icon.svg").status_code == 200
+
+
+def test_registry_sync_moves_existing_plots(client):
+    """An existing database follows the seed file when plot coordinates change."""
+    _, main = client
+    from models import sync_registry
+    main.con.execute("UPDATE plots SET lat = 0, lon = 0 WHERE plot_id = 'OND-0017'")
+    sync_registry(main.con, main.config.SEED_PATH)
+    row = main.con.execute("SELECT lat, lon FROM plots WHERE plot_id = 'OND-0017'").fetchone()
+    assert (row["lat"], row["lon"]) != (0, 0)
+    assert main.con.execute("SELECT COUNT(*) FROM plots").fetchone()[0] == 40
+
+
 def test_two_plots_no_alert_third_plot_creates_draft(client):
     c, main = client
     n1, n2 = near_demo(2)
@@ -96,7 +116,7 @@ def test_approve_writes_outbox_to_neighbours_only(client):
     # approving twice does nothing more
     c.post(f"/alerts/{aid}/approve", follow_redirects=False)
     assert len(main.con.execute("SELECT * FROM sms_outbox").fetchall()) == len(rows)
-    assert c.get("/").status_code == 200
+    assert c.get("/dashboard").status_code == 200
 
 
 def test_dismiss_sends_nothing(client):
@@ -217,7 +237,7 @@ def test_live_approval_end_to_end_with_fake_provider(client, monkeypatch):
     assert [r["status"] for r in rows].count("sent") == 1
     assert all(r["status"] == "would_send" for r in rows if r["status"] != "sent")
     assert fake.sent == ["+254700000001"]
-    assert "+254700000001" not in c.get("/").text          # full number never shown on the dashboard
+    assert "+254700000001" not in c.get("/dashboard").text          # full number never shown on the dashboard
 
 
 def test_cors_origin_with_trailing_slash_is_accepted(monkeypatch):

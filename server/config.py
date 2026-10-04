@@ -19,6 +19,11 @@ SEED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_plots
 APP_ORIGIN = [o.strip().rstrip("/") for o in os.environ.get(
     "APP_ORIGIN", "http://localhost:5173,http://localhost:4173").split(",") if o.strip().rstrip("/")]
 
+# Links on the landing page. APP_URL defaults to the first deployed (https) origin in APP_ORIGIN.
+APP_URL = os.environ.get("APP_URL") or next(
+    (o for o in APP_ORIGIN if o.startswith("https://") and "localhost" not in o), "http://localhost:5173")
+REPO_URL = os.environ.get("REPO_URL", "https://github.com/erSuyognp/Jirani")
+
 # SMS gateway. See sms_gateway.py and .env.example.
 SMS_PROVIDER = os.environ.get("SMS_PROVIDER", "mock").lower()          # mock | live
 SMS_LIVE_PROVIDER = os.environ.get("SMS_LIVE_PROVIDER", "twilio").lower()  # twilio (trial)

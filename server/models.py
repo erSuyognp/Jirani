@@ -58,6 +58,16 @@ def seed_if_empty(con, seed_path):
     return len(plots)
 
 
+def sync_registry(con, seed_path):
+    """The seed file is the registry: when it changes (plots moved or added), bring an existing database in line."""
+    plots = json.load(open(seed_path, encoding="utf8"))["plots"]
+    con.executemany(
+        """INSERT INTO plots VALUES (?,?,?,?,NULL)
+           ON CONFLICT(plot_id) DO UPDATE SET lat=excluded.lat, lon=excluded.lon, blocks_json=excluded.blocks_json""",
+        [(p["plot_id"], p["lat"], p["lon"], json.dumps(p["blocks"])) for p in plots])
+    con.commit()
+
+
 REPORT_FIELDS = ("id", "plotId", "block", "stress", "severity", "trend", "confidence", "takenAt", "modelVersion")
 STRESSES = {"healthy", "miner", "rust", "phoma", "cercospora", "not_sure"}
 
