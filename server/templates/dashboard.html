@@ -98,7 +98,8 @@
     <div class="coop">Ondera Coffee Cooperative <span class="chip syn">fictional</span></div>
     <div class="status">
       <span>{{ icon("mail", 15) }} SMS: {{ "mock, no real SMS is sent" if sms_mode == "mock" else sms_mode }}</span>
-      <span><i class="live"></i> Refreshes every 15 s</span>
+      <span>Loaded {{ loaded }} UTC</span>
+      <a href="/dashboard" onclick="location.reload(); return false">Refresh</a>
       <a href="{{ app_url }}" rel="noopener">Farmer app</a>
       <a href="/simulation">Simulation</a>
       <a href="/">About Jirani {{ icon("arrow", 15) }}</a>
@@ -356,10 +357,6 @@
     map.on("moveend", () => store.set("jirani-view", JSON.stringify({ c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() })));
     map.on("click", () => map.scrollWheelZoom.enable());
   } catch (e) { document.getElementById("map").textContent = "Map unavailable offline; see the tables."; }
-  // auto refresh unless the officer is typing or reading a map popup
-  setInterval(() => {
-    const typing = document.activeElement && ["INPUT", "SELECT"].includes(document.activeElement.tagName);
-    if (!typing && !document.querySelector(".leaflet-popup")) location.reload();
-  }, 15000);
+  // no automatic refresh: the page changes only when the officer presses Refresh or submits a form
 </script>
 {% endblock %}

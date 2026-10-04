@@ -200,6 +200,7 @@ the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play al
    python fetch_ood.py         # PlantDoc sample + synthetic non-leaf images
    python evaluate.py          # -> ml/report/report.md, metrics.json, plots
    python tune_quality.py      # quality-gate thresholds -> ml/report/quality_gate.json
+   python cherry_head.py       # optional experiment, not shipped: cherry ripeness head (needs ml/data/cherry/, see DATA.md)
    ```
 
 ### Rebuild the context pack and the audio pack
@@ -244,6 +245,7 @@ person only: see `app/public/audio/ki/manifest.json` for the list and file names
 - **Detached leaves only.** The model saw the lower side of single detached leaves on a white background. Cluttered backgrounds drop accuracy to 55%, which is why the app asks for the printed capture card (a white sheet with leaf boxes).
 - **The capture card is not detected.** The corner marks and the scale bar are printed for a later check. Today the app cannot tell whether the card was used, so it does not warn about it; the quality gate is the only gate. The model was not re-tested on photos taken on the card.
 - **Cherry band is a weekend prototype.** A colour heuristic with draft thresholds, checked on generated images and on four real photos from Wikimedia Commons (two close-ups of fruit on a white background, two taken on the tree, which it refuses). It has not been tried on a handful of cherry photographed on the printed card, and not on Kenyan varieties. It is not derived from BRACOL. The card says "Prototype grade, not a trained model. Confirm at the factory."
+- **A trained cherry head was tried and is not shipped.** `ml/cherry_head.py` trains a small ripeness head on the frozen leaf backbone with an open lab dataset (640 single cherries, Zenodo, CC BY 4.0). It is right on 94% of held-out lab tiles and beats the colour check on synthetic handfuls built from those fruits (61% against 52% of bands right), but it is wrong on real camera photos: the top stage was right on 4 of 8, and it called piles of ripe red cherries "unripe". So the app keeps the colour check, and the card still says "not a trained model". Numbers: `ml/report/cherry_head.json`.
 - **Buyer tickets are synthetic.** Nine made-up demo tickets in the cooperative seed. They are not market prices.
 - **Gikuyu clips are placeholders.** No Gikuyu audio has been recorded, so the "Play prompt" control is silent and only shows the Kiswahili question.
 - **No nutrient-deficiency or abiotic classes.** These should fall through to "not sure", but that is not guaranteed.

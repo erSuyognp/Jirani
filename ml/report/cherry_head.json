@@ -1,0 +1,235 @@
+{
+ "shipped": false,
+ "decision": "Not used by the app. Good on held-out lab fruits, wrong on real camera photos (see real_camera_photos). The app keeps the colour check in app/src/capture/cherry.ts.",
+ "real_camera_photos": [
+  {
+   "photo": "two ripe cherries on white, close-up",
+   "a_person_sees": "ripe",
+   "head_top_stage": "ripe",
+   "head_right": true,
+   "head_shares": {
+    "unripe": 0.02,
+    "semi_ripe": 0.13,
+    "ripe": 0.39,
+    "overripe": 0.12,
+    "dry": 0.34
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.93,
+   "colour_check_defect": 0.03,
+   "colour_check_band": "A"
+  },
+  {
+   "photo": "two ripe cherries on white, shrunk onto a card",
+   "a_person_sees": "ripe",
+   "head_top_stage": "ripe",
+   "head_right": true,
+   "head_shares": {
+    "unripe": 0.0,
+    "semi_ripe": 0.07,
+    "ripe": 0.49,
+    "overripe": 0.15,
+    "dry": 0.3
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.93,
+   "colour_check_defect": 0.02,
+   "colour_check_band": "A"
+  },
+  {
+   "photo": "fresh pile, mostly red",
+   "a_person_sees": "ripe",
+   "head_top_stage": "unripe",
+   "head_right": false,
+   "head_shares": {
+    "unripe": 0.46,
+    "semi_ripe": 0.18,
+    "ripe": 0.19,
+    "overripe": 0.02,
+    "dry": 0.16
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.72,
+   "colour_check_defect": 0.17,
+   "colour_check_band": "B"
+  },
+  {
+   "photo": "red cherries on a drying patio",
+   "a_person_sees": "ripe",
+   "head_top_stage": "unripe",
+   "head_right": false,
+   "head_shares": {
+    "unripe": 0.67,
+    "semi_ripe": 0.09,
+    "ripe": 0.04,
+    "overripe": 0.03,
+    "dry": 0.17
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.52,
+   "colour_check_defect": 0.32,
+   "colour_check_band": "C"
+  },
+  {
+   "photo": "dried pile",
+   "a_person_sees": "dry",
+   "head_top_stage": "unripe",
+   "head_right": false,
+   "head_shares": {
+    "unripe": 0.63,
+    "semi_ripe": 0.03,
+    "ripe": 0.03,
+    "overripe": 0.1,
+    "dry": 0.21
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.07,
+   "colour_check_defect": 0.81,
+   "colour_check_band": "C"
+  },
+  {
+   "photo": "dried cherries in a tray",
+   "a_person_sees": "dry",
+   "head_top_stage": "unripe",
+   "head_right": false,
+   "head_shares": {
+    "unripe": 0.7,
+    "semi_ripe": 0.09,
+    "ripe": 0.02,
+    "overripe": 0.01,
+    "dry": 0.19
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.01,
+   "colour_check_defect": 0.78,
+   "colour_check_band": "C"
+  },
+  {
+   "photo": "four half-ripe cherries in a hand",
+   "a_person_sees": "unripe",
+   "head_top_stage": "unripe",
+   "head_right": true,
+   "head_shares": {
+    "unripe": 0.84,
+    "semi_ripe": 0.02,
+    "ripe": 0.0,
+    "overripe": 0.09,
+    "dry": 0.05
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.04,
+   "colour_check_defect": 0.08,
+   "colour_check_band": "C"
+  },
+  {
+   "photo": "green to orange cherries on a branch",
+   "a_person_sees": "unripe",
+   "head_top_stage": "unripe",
+   "head_right": true,
+   "head_shares": {
+    "unripe": 0.98,
+    "semi_ripe": 0.0,
+    "ripe": 0.0,
+    "overripe": 0.0,
+    "dry": 0.01
+   },
+   "head_band": "C",
+   "colour_check_ripe": 0.01,
+   "colour_check_defect": 0.71,
+   "colour_check_band": "C"
+  }
+ ],
+ "real_camera_photos_head_right": "4 of 8",
+ "dataset": "Dataset coffee 15 Channels, Zenodo 10.5281/zenodo.4914786, CC BY 4.0 (Tamayo-Monsalve)",
+ "backbone": "app/public/model/model.int8.onnx (frozen, unchanged)",
+ "features": 576,
+ "classes": [
+  "unripe",
+  "semi_ripe",
+  "ripe",
+  "overripe",
+  "dry"
+ ],
+ "label_names": "INFERRED from class counts and reconstructed colour",
+ "seed": 150,
+ "fruits": {
+  "train": [
+   91,
+   112,
+   112,
+   78,
+   55
+  ],
+  "val": [
+   20,
+   24,
+   24,
+   17,
+   12
+  ],
+  "test": [
+   19,
+   24,
+   24,
+   17,
+   11
+  ]
+ },
+ "fruits_not_segmented": 0,
+ "training_images": "SYNTHETIC composites: cut-out real fruits on a white card (single stage and mixed), colour-jittered",
+ "C": 0.01,
+ "val_accuracy": 0.94,
+ "test_accuracy_5_stage": 0.9367,
+ "test_accuracy_5_stage_no_jitter": 0.8867,
+ "test_accuracy_ripe_defect_other": 0.9433,
+ "test_confusion_rows_true_cols_pred": [
+  [
+   116,
+   2,
+   0,
+   2,
+   0
+  ],
+  [
+   4,
+   105,
+   11,
+   0,
+   0
+  ],
+  [
+   0,
+   7,
+   111,
+   2,
+   0
+  ],
+  [
+   0,
+   0,
+   2,
+   117,
+   1
+  ],
+  [
+   0,
+   0,
+   0,
+   7,
+   113
+  ]
+ ],
+ "test_mixed_tiles_area_in_wrong_stage": 0.2808,
+ "synthetic_handfuls": {
+  "n": 240,
+  "truth_bands": {
+   "A": 65,
+   "B": 69,
+   "C": 106
+  },
+  "band_accuracy_head": 0.6125,
+  "band_accuracy_colour_check": 0.5167,
+  "ripe_share_mean_abs_error_head": 0.1259,
+  "ripe_share_mean_abs_error_colour_check": 0.1618
+ }
+}

@@ -391,5 +391,5 @@ def dashboard(request: Request):
         "rule": config.OUTBREAK, "consults": consults, "n_open": sum(c["status"] == "open" for c in consults),
         "reply_stresses": REPLY_STRESSES, "queue": queue, "recent_done": recent_done,
         "n_unscheduled": sum(t["status"] == "open" for t in queue), "ticket_rule": config.TICKETS,
-        "app_url": config.APP_URL,
+        "app_url": config.APP_URL, "loaded": fmt_ts(now_iso()),
     })

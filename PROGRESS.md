@@ -326,6 +326,32 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
 - Not checked: the four new clips by ear; a narrated run; the page on the live sites. **The recorded video in
   `recordings/` is now out of date**: run `node scripts/record_simulation.cjs <simulation URL>` again.
 
+### Cherry head experiment and dashboard refresh (2026-10-04)
+- **Asked:** "train the cherry into the model too". Chosen with the user: a separate small head on the frozen leaf
+  backbone, so the shipped 1.04 MB model, tau and the refusal rule stay as they are.
+- **Data:** no open dataset has handfuls graded A/B/C. Used "Dataset coffee 15 Channels" (Zenodo
+  10.5281/zenodo.4914786, CC BY 4.0, 182 MB): 640 lab images of single cherries under 15 light wavelengths, five
+  ripening stages. The files name neither the wavelengths nor the classes, so `ml/cherry_head.py` assumes the band
+  centres (checked against the data: red fruit reflects in the long bands, green fruit dips at the chlorophyll band)
+  and infers the class names from the counts and the reconstructed colours.
+- **Training:** every fruit is cut out and pasted on a white card (one fruit, a few, or a small pile; single-stage
+  and mixed), colour-jittered, run through the shipped ONNX model, and a logistic regression is fitted on the 576
+  pooled features. Fruits are split 70/15/15 before compositing, seed 150.
+- **Lab results (held-out fruits):** 93.7% of single-stage tiles right (5 stages), 94.3% for ripe / defect / other.
+  On 240 synthetic handfuls the band was right 61.3% of the time for the head and 51.7% for the colour check; mean
+  error of the ripe share 0.13 against 0.16.
+- **Real camera photos (8 crops from Wikimedia Commons):** top stage right on 4 of 8. It called a pile of ripe red
+  cherries, red cherries on a drying patio and two piles of dried cherries "unripe", and it graded the real photo of
+  ripe cherries on white band C (the colour check says A).
+- **Decision: not shipped.** The app does not load the head; the colour check stays, and the card still says
+  "Prototype grade, not a trained model." The weights are in `ml/report/cherry_head_weights.json` and the numbers in
+  `ml/report/cherry_head.json`. What would change this: phone photos of sorted cherry on the printed card, about 50
+  per stage; the same script could then train and test on real camera colours.
+- **Dashboard:** the automatic refresh every 15 seconds is gone. The header shows when the page was loaded and a
+  Refresh link; forms still reload the page when submitted. The simulation page reloads its dashboard frame itself,
+  so it is unaffected.
+- Tests: app 39/39, server 25/25.
+
 ### Waiting on the user
 - [ ] **Record the Gikuyu clips** (8 short clips, list in `app/public/audio/ki/manifest.json`), or accept the placeholder note in the demo.
 - [ ] **Print the capture card once** at 100% and measure the 20 mm bar.

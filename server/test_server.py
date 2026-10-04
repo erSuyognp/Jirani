@@ -72,6 +72,7 @@ def test_landing_page_and_dashboard_render(client):
     assert card.status_code == 200 and card.content.startswith(b"%PDF") and "/static/capture-card.pdf" in home.text
     dash = c.get("/dashboard")
     assert dash.status_code == 200 and "Demo data is synthetic" in dash.text   # spec: visible banner
+    assert "setInterval" not in dash.text and "Refresh</a>" in dash.text       # no automatic refresh
     assert c.get("/static/icon.svg").status_code == 200
 
 

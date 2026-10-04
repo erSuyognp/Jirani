@@ -6,6 +6,7 @@ dist/
 ml/data/bracol/
 ml/data/ood/
 ml/data/perturbed/
+ml/data/cherry/
 ml/checkpoints/
 *.pt
 server/*.db
