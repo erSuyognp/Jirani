@@ -1,11 +1,12 @@
 // The Decision Card: the seven slots from the spec, the heatmaps, and the handoff to the basic phone.
 import {
-  Ban, Check, CircleCheck, FileWarning, MessageSquare, Satellite, ScanSearch, Search, Send, Share2, Square, Timer, TriangleAlert, UserRound, Volume2,
+  Ban, Check, CircleCheck, FileWarning, Images, MessageSquare, Satellite, ScanSearch, Search, Send, Share2, Square, Timer, TriangleAlert, UserRound, Volume2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Settings } from "../db/db";
 import { cardAudioFile, cardClipKeys, playKeys, shareOrDownload, stopAudio } from "../handoff/audio";
 import { smsUri } from "../handoff/sms";
+import type { Photo } from "../inference/pipeline";
 import type { Card } from "../logic/card";
 import type { ContextPack, Lang } from "../logic/types";
 import { Steps } from "./Check";
@@ -13,8 +14,9 @@ import { t } from "./i18n";
 import type { Result } from "./types";
 import { Banner, SeverityMeter, StressBadge, toneOf, TrendIcon } from "./widgets";
 
-export function ResultCard({ lang, r, card: c, sms, settings, pack, onSave, notify }: {
+export function ResultCard({ lang, r, card: c, sms, settings, pack, photos, ask, setAsk, onSave, notify }: {
   lang: Lang; r: Result; card: Card; sms: string; settings: Settings; pack: ContextPack | null;
+  photos: Photo[]; ask: boolean; setAsk: (on: boolean) => void;
   onSave: () => void; notify: (text: string, tone?: "ok" | "bad") => void;
 }) {
   const T = (k: string, v?: Record<string, string | number>) => t(lang, k, v);
@@ -96,6 +98,16 @@ export function ResultCard({ lang, r, card: c, sms, settings, pack, onSave, noti
         <section className={`card next ${c.nextStepKey}`}>
           <div className="label">{T("next_step")}</div>
           <p className="next-text">{c.nextStepKey === "sync" ? <Send size={20} aria-hidden /> : <UserRound size={20} aria-hidden />} {c.nextStep}</p>
+        </section>
+
+        <section className={`card ask ${ask ? "on" : ""}`}>
+          <div className="label"><UserRound size={16} aria-hidden /> {T("ask_title")}</div>
+          <p>{T("ask_body")}</p>
+          <div className="ask-thumbs">{photos.map((p, i) => <img key={i} src={p.thumbUrl} alt="" />)}</div>
+          <label className="switch"><span><Images size={18} aria-hidden /> {T("ask_toggle")}</span>
+            <input type="checkbox" checked={ask} onChange={(e) => setAsk(e.target.checked)} />
+          </label>
+          {ask && <p className="hint"><Send size={15} aria-hidden /> {T("ask_hint")}</p>}
         </section>
 
         <Banner tone="warn" icon={<FileWarning size={18} aria-hidden />}>{c.draft}</Banner>

@@ -3,6 +3,7 @@
 Run:  uvicorn main:app --app-dir server --port 8000
 All demo data (registry, simulated reports) is SYNTHETIC. No LLM calls anywhere.
 """
+import base64
 import json
 import os
 from collections import Counter
@@ -10,7 +11,7 @@ from datetime import datetime
 
 from fastapi import Body, FastAPI, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
@@ -18,7 +19,7 @@ from markupsafe import Markup
 import config
 import outbreak
 import sms_gateway
-from models import connect, now_iso, seed_if_empty, sync_registry, upsert_report, validate_packet
+from models import connect, now_iso, seed_if_empty, sync_registry, upsert_report, validate_consult, validate_packet
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES = json.load(open(os.path.join(HERE, "alert_templates.json"), encoding="utf8"))
@@ -98,6 +99,66 @@ def reports(payload=Body(...)):
     alerts = outbreak.detect(con)
     return {"accepted": len(packets), "ids": [p["id"] for p in packets],
             "alerts": [{"id": a, "change": c} for a, c in alerts]}
+
+
+@app.post("/api/consults")
+def consult_create(payload=Body(...)):
+    """'Ask the officer': leaf photos for one report, sent only when the farmer chose to. Idempotent by id."""
+    try:
+        images = validate_consult(payload)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    rep = con.execute("SELECT plot_id FROM reports WHERE id = ?", (payload["id"],)).fetchone()
+    if not rep or rep["plot_id"] != payload["plotId"]:
+        raise HTTPException(422, "no report with this id for this plot; send the report first")
+    con.execute("INSERT INTO consults (id, plot_id, block, images_json, created_at) VALUES (?,?,?,?,?) "
+                "ON CONFLICT(id) DO NOTHING",
+                (payload["id"], payload["plotId"], str(payload["block"])[:20], json.dumps(images), now_iso()))
+    con.commit()
+    return {"accepted": True, "id": payload["id"]}
+
+
+@app.get("/api/consults/replies")
+def consult_replies(ids: str = ""):
+    """The phone asks for replies to its own requests (ids are the random report ids it created)."""
+    wanted = [i for i in ids.split(",") if i][:50]
+    if not wanted:
+        return {"replies": []}
+    rows = con.execute(f"SELECT * FROM consults WHERE status = 'answered' AND id IN ({','.join('?' * len(wanted))})",
+                       wanted).fetchall()
+    return {"replies": [{k: v for k, v in (("id", r["id"]), ("verdict", r["verdict"]), ("stress", r["stress"]),
+                                             ("band", r["band"]), ("answeredAt", r["answered_at"])) if v is not None}
+                        for r in rows]}
+
+
+@app.get("/consults/{consult_id}/{n}.jpg")
+def consult_image(consult_id: str, n: int):
+    row = con.execute("SELECT images_json FROM consults WHERE id = ?", (consult_id,)).fetchone()
+    images = json.loads(row["images_json"]) if row else []
+    if not 0 <= n < len(images):
+        raise HTTPException(404)
+    return Response(base64.b64decode(images[n]), media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600"})
+
+
+REPLY_STRESSES = ("rust", "miner", "phoma", "cercospora", "healthy")
+
+
+@app.post("/consults/{consult_id}/reply")
+def consult_reply(consult_id: str, reply: str = Form(...), band: str = Form("low"), officer: str = Form("officer")):
+    """The officer answers from a fixed list: a diagnosis (with low/high), 'I will visit', or 'send new photos'."""
+    if reply in ("visit", "retake"):
+        verdict, stress, band = reply, None, None
+    elif reply in REPLY_STRESSES and band in ("low", "high"):
+        verdict, stress, band = "diagnosis", reply, "low" if reply == "healthy" else band
+    else:
+        raise HTTPException(422, "unknown reply")
+    cur = con.execute("UPDATE consults SET status='answered', verdict=?, stress=?, band=?, officer=?, answered_at=? "
+                      "WHERE id=? AND status='open'",
+                      (verdict, stress, band, officer.strip()[:60] or "officer", now_iso(), consult_id))
+    con.commit()
+    if not cur.rowcount and not con.execute("SELECT 1 FROM consults WHERE id = ?", (consult_id,)).fetchone():
+        raise HTTPException(404)
+    return RedirectResponse(DASHBOARD + "#consults", status_code=303)
 
 
 @app.post("/alerts/{alert_id}/approve")
@@ -183,6 +244,13 @@ def dashboard(request: Request):
         a["recipients"] = outbreak.recipients(con, a) if a["status"] == "draft" else []
         alerts.append(a)
     outbox = [dict(r) for r in con.execute("SELECT * FROM sms_outbox ORDER BY id DESC LIMIT 200")]
+    by_id = {r["id"]: r for r in reps}
+    consults = []
+    for c in con.execute("SELECT * FROM consults ORDER BY status DESC, created_at DESC LIMIT 60"):  # open first
+        c = dict(c)
+        c["n_images"] = len(json.loads(c.pop("images_json")))
+        c["report"] = by_id.get(c["id"])
+        consults.append(c)
     map_plots = [{"id": pid, "lat": p["lat"], "lon": p["lon"], **{k: latest_plot.get(pid, {}).get(k) for k in
                   ("stress", "severity", "trend", "block", "taken_at", "synthetic")}}
                  for pid, p in plots_.items()]
@@ -194,5 +262,6 @@ def dashboard(request: Request):
         "n_synthetic": sum(r["synthetic"] for r in reps), "sms_mode": gateway.mode,
         "stress_label": STRESS_LABEL, "area": SEED.get("area", ""), "n_plots": len(plots_),
         "n_reporting": len(latest_plot), "n_draft": sum(a["status"] == "draft" for a in alerts),
-        "rule": config.OUTBREAK,
+        "rule": config.OUTBREAK, "consults": consults, "n_open": sum(c["status"] == "open" for c in consults),
+        "reply_stresses": REPLY_STRESSES,
     })

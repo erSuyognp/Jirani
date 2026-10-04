@@ -102,6 +102,12 @@
     "footer": { "en": "This tool helps you decide what to check. It does not replace the extension officer.", "sw": "Kifaa hiki kinakusaidia kuamua nini cha kukagua. Hakichukui nafasi ya afisa ugani." }
   },
 
+  "officer": {
+    "says":   { "en": "The officer looked at your photos: {stress}.", "sw": "Afisa ameangalia picha zako: {stress}." },
+    "visit":  { "en": "The officer looked at your photos and will come to see this block.", "sw": "Afisa ameangalia picha zako na atakuja kuona kitalu hiki." },
+    "retake": { "en": "The officer could not see the leaves clearly. Take new photos on white paper and send them again.", "sw": "Afisa hakuweza kuona majani vizuri. Piga picha mpya juu ya karatasi nyeupe uzitume tena." }
+  },
+
   "audio": {
     "note": "Spoken-only variants (pre-recorded clips cannot say the number of days).",
     "trend": {
@@ -120,6 +126,18 @@
     "template_not_sure": {
       "en": "JIRANI {date} Block {block}: NOT SURE. Do: {action}. Dont: {donot}. Ask a person.",
       "sw": "JIRANI {date} Kitalu {block}: SINA UHAKIKA. Fanya: {action}. Usi: {donot}. Uliza mtu."
+    },
+    "template_officer": {
+      "en": "JIRANI {date} Block {block}: OFFICER SAYS {stress}. Do: {action}. Dont: {donot}.",
+      "sw": "JIRANI {date} Kitalu {block}: AFISA ASEMA {stress}. Fanya: {action}. Usi: {donot}."
+    },
+    "officer_visit": {
+      "en": "JIRANI {date} Block {block}: the officer saw your photos and will come to see this block. Do not spray before then.",
+      "sw": "JIRANI {date} Kitalu {block}: afisa ameona picha zako na atakuja kuona kitalu hiki. Usinyunyizie kabla."
+    },
+    "officer_retake": {
+      "en": "JIRANI {date} Block {block}: the officer could not see the leaves. Send new photos on white paper.",
+      "sw": "JIRANI {date} Kitalu {block}: afisa hakuona majani vizuri. Tuma picha mpya juu ya karatasi nyeupe."
     },
     "months": {
       "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],

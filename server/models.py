@@ -1,4 +1,6 @@
 """SQLite schema and small data helpers (plain sqlite3, no ORM)."""
+import base64
+import binascii
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -24,6 +26,12 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
   body TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL,
   provider TEXT, provider_id TEXT, error TEXT, to_number_masked TEXT,
   delivery TEXT  -- provider delivery status (queued/sent/delivered/undelivered/failed + error code)
+);
+-- "Ask the officer": leaf photos a farmer chose to send with one report, and the officer's fixed-list reply.
+CREATE TABLE IF NOT EXISTS consults (
+  id TEXT PRIMARY KEY, plot_id TEXT NOT NULL, block TEXT NOT NULL, images_json TEXT NOT NULL,
+  created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',
+  verdict TEXT, stress TEXT, band TEXT, officer TEXT, answered_at TEXT
 );
 """
 
@@ -81,6 +89,30 @@ def validate_packet(p):
     if extra:  # privacy: refuse anything beyond the agreed packet (no names, phones, photos, GPS)
         raise ValueError(f"unexpected fields {sorted(extra)}")
     return p
+
+
+CONSULT_FIELDS = {"id", "plotId", "block", "images"}
+MAX_IMAGES = 3
+MAX_IMAGE_BYTES = 300_000  # the app sends leaf crops of about 50-80 KB
+
+
+def validate_consult(p):
+    """Leaf photos for one report. Returns the images as base64 strings; raises ValueError on anything else."""
+    if not isinstance(p, dict) or set(p) != CONSULT_FIELDS:
+        raise ValueError(f"consult must have exactly the fields {sorted(CONSULT_FIELDS)}")
+    images = p["images"]
+    if not isinstance(images, list) or not 1 <= len(images) <= MAX_IMAGES:
+        raise ValueError(f"1 to {MAX_IMAGES} images expected")
+    for im in images:
+        try:
+            raw = base64.b64decode(im, validate=True)
+        except (binascii.Error, TypeError, ValueError):
+            raise ValueError("image is not base64")
+        if not raw.startswith(b"\xff\xd8"):
+            raise ValueError("image is not a JPEG")
+        if len(raw) > MAX_IMAGE_BYTES:
+            raise ValueError("image too large")
+    return images
 
 
 def upsert_report(con, p, synthetic=False):

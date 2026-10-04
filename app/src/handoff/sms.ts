@@ -2,7 +2,7 @@
 import { CONFIG } from "../config";
 import { type Answers, fill, pick } from "../logic/answers";
 import type { Card } from "../logic/card";
-import type { Lang } from "../logic/types";
+import type { Lang, OfficerReply } from "../logic/types";
 
 // GSM 03.38 basic character set (no extension table, so every char is 1 septet).
 const GSM7 =
@@ -31,6 +31,35 @@ export function buildSms(card: Card, block: string, date: Date, A: Answers, lang
         trend: pick(S.trend[card.trendKey ?? "first"], lang, "sms.trend"),
       })
     : fill(pick(S.template_not_sure, lang, "sms.template_not_sure"), base);
+  if (body.length > CONFIG.sms.maxChars || !isGsm7(body)) {
+    throw new Error(`SMS not single-segment GSM-7 (${body.length} chars): ${body}`);
+  }
+  return body;
+}
+
+/** Key into answers.json `action` for an officer diagnosis (same lookup as the card). */
+export function officerActionKey(reply: OfficerReply): string {
+  if (reply.stress === "healthy") return "healthy.low";
+  return `${reply.stress}.${reply.band === "high" ? "high" : "low"}`;
+}
+
+/** Single-segment SMS for the officer's reply, so it can go to the basic phone like the card. */
+export function officerSms(reply: OfficerReply, block: string, A: Answers, lang: Lang): string {
+  const S = A.sms;
+  const base = { date: smsDate(new Date(reply.answeredAt), A, lang), block: block.slice(0, 8) };
+  let body: string;
+  if (reply.verdict === "diagnosis" && reply.stress) {
+    const key = officerActionKey(reply);
+    body = fill(pick(S.template_officer, lang, "sms.template_officer"), {
+      ...base,
+      stress: pick(S.stress[reply.stress], lang, "sms.stress"),
+      action: pick(key.endsWith(".high") ? S.action.high : S.action[key], lang, `sms.action.${key}`),
+      donot: pick(S.do_not[reply.stress], lang, "sms.do_not"),
+    });
+  } else {
+    const t = reply.verdict === "visit" ? S.officer_visit : S.officer_retake;
+    body = fill(pick(t, lang, `sms.officer_${reply.verdict}`), base);
+  }
   if (body.length > CONFIG.sms.maxChars || !isGsm7(body)) {
     throw new Error(`SMS not single-segment GSM-7 (${body.length} chars): ${body}`);
   }

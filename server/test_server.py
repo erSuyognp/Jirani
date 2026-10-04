@@ -136,6 +136,42 @@ def test_packet_privacy_rejects_extra_fields(client):
     assert c.post("/api/reports", json=pkt(1, "OND-9999")).status_code == 422
 
 
+JPEG = __import__("base64").b64encode(b"\xff\xd8\xff\xe0" + b"leaf" * 50).decode()
+
+
+def test_ask_the_officer_photos_and_fixed_reply(client):
+    c, main = client
+    consult = {"id": "r1", "plotId": "OND-0017", "block": "A", "images": [JPEG, JPEG, JPEG]}
+    assert c.post("/api/consults", json=consult).status_code == 422          # no report yet: photos alone are refused
+    c.post("/api/reports", json=pkt(1, "OND-0017", stress="not_sure", sev=None))
+    assert c.post("/api/consults", json={**consult, "name": "Noor"}).status_code == 422     # no extra fields
+    assert c.post("/api/consults", json={**consult, "images": ["bm90IGEganBlZw=="]}).status_code == 422  # not a JPEG
+    assert c.post("/api/consults", json={**consult, "images": [JPEG] * 4}).status_code == 422
+    assert c.post("/api/consults", json={**consult, "plotId": "OND-0001"}).status_code == 422   # wrong plot
+    assert c.post("/api/consults", json=consult).status_code == 200
+    assert c.post("/api/consults", json=consult).status_code == 200           # resend: idempotent
+    assert main.con.execute("SELECT COUNT(*) FROM consults").fetchone()[0] == 1
+    img = c.get("/consults/r1/2.jpg")
+    assert img.status_code == 200 and img.headers["content-type"] == "image/jpeg" and img.content[:2] == b"\xff\xd8"
+    assert c.get("/consults/r1/3.jpg").status_code == 404
+    assert "Photo requests from farmers" in c.get("/dashboard").text and "/consults/r1/0.jpg" in c.get("/dashboard").text
+    # no reply until the officer answers; replies come only from the fixed list
+    assert c.get("/api/consults/replies?ids=r1,unknown").json() == {"replies": []}
+    assert c.post("/consults/r1/reply", data={"reply": "spray something"}, follow_redirects=False).status_code == 422
+    r = c.post("/consults/r1/reply", data={"reply": "rust", "band": "high", "officer": "Officer A"}, follow_redirects=False)
+    assert r.status_code == 303
+    reply = c.get("/api/consults/replies?ids=r1").json()["replies"]
+    assert len(reply) == 1 and reply[0]["verdict"] == "diagnosis" and reply[0]["stress"] == "rust" and reply[0]["band"] == "high"
+    assert set(reply[0]) == {"id", "verdict", "stress", "band", "answeredAt"}  # the officer's name stays on the server
+    c.post("/consults/r1/reply", data={"reply": "visit"}, follow_redirects=False)   # answering twice changes nothing
+    assert c.get("/api/consults/replies?ids=r1").json()["replies"][0]["verdict"] == "diagnosis"
+
+
+def test_report_packets_still_refuse_photos(client):
+    c, _ = client
+    assert c.post("/api/reports", json=pkt(1, "OND-0017", images=[JPEG])).status_code == 422
+
+
 def test_all_alert_templates_fit_one_sms():
     import main as m
     for s in m.TEMPLATES["stress"]:

@@ -37,6 +37,7 @@ Background evidence (with sources and `TODO: verify` flags): [EVIDENCE.md](EVIDE
 | F2 | **"Where it looked"** | Class activation map overlay on each agreeing leaf (exact, because the head is linear on pooled features). |
 | F3 | **Cooperative sync and neighbour early warning** | Store-and-forward outbox; the user presses Send. The server detects ≥ 3 plots within 2 km with the same stress in 14 days and creates a **draft** alert. An officer approves it, and messages to about 9 neighbouring plots are written to the outbox as "would be sent" (mock SMS, see below). |
 | F4 | **Yield-drop cause ranking** | A transparent rule-based scorer combines the image result with a cached weather and soil pack (NASA POWER rain vs. 10-year normal, SoilGrids pH). It shows up to 3 causes plus "what this tool cannot see". |
+| F5 | **Ask the officer (opt-in photos)** | On any result, the farmer can switch on "Ask the extension officer". The three leaf photos (crops of at most 640 px with no EXIF; 38 KB for three photos in our test) then go with the next Sync. The officer sees them on the dashboard and replies from a fixed list: a diagnosis with low/high, "I will visit", or "send new photos". The reply reaches the phone at its next sync and can be forwarded to the basic phone as one SMS. |
 | Handoff | **Basic phone** | A single-segment SMS (≤ 160 GSM-7 characters, tested for every possible card in both languages) via an `sms:` link; Kiswahili audio built from pre-recorded clips; share audio over Bluetooth. |
 
 Every user-facing sentence comes from a fixed answer list (`app/public/content/answers.json`, i18n). There are
@@ -101,7 +102,7 @@ Prerequisites: Python 3.11, Node 22.12+, git. Commands run from the repo root un
 cd app
 npm install
 npm run dev          # http://localhost:5173  (copies the onnxruntime wasm into public/ort first)
-npm test             # 26 unit tests: aggregation, refusal, trend, causes, SMS length, audio pack, no-chemicals scan
+npm test             # 28 unit tests: aggregation, refusal, trend, causes, SMS length, officer replies, audio pack, no-chemicals scan
 npm run build        # production PWA in app/dist (set VITE_API_URL to point at your server)
 npm run preview      # serve dist on http://localhost:4173 (service worker active: test offline here)
 ```
@@ -131,7 +132,7 @@ python -m venv .venv
 .venv/Scripts/activate                              # Windows; on macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements-dev.txt
 uvicorn main:app --app-dir server --port 8000      # landing page http://localhost:8000, dashboard /dashboard
-python -m pytest server -q                          # 18 tests: outbreak rule, approval, privacy, SMS allowlist, CORS, pages
+python -m pytest server -q                          # 20 tests: outbreak rule, approval, privacy, photo requests, SMS allowlist, CORS, pages
 python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbour rust reports (--all adds OND-0017)
 ```
 
@@ -176,8 +177,9 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
    - Nothing is ever sent automatically.
 4. **No chemicals.** No product names and no dosages. A unit test scans all content for both.
 5. **Privacy.**
-   - Photos never leave the phone.
-   - Sync packets carry plot id, block and class only; the server rejects any extra field.
+   - Photos stay on the phone unless the farmer switches on "Ask the extension officer" for a check. Only that check's leaf crops are sent, and only when she presses Send.
+   - Sync packets carry plot id, block and class only; the server rejects any extra field, including photos.
+   - The demo dashboard has no login, so anyone with its link can see photos that were sent. A real deployment needs officer accounts.
    - The basic phone number is stored only on the device.
    - Settings has a "Clear all data on this phone" button.
 6. **Honesty about limits.**

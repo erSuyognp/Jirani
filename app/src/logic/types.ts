@@ -35,6 +35,26 @@ export interface Observation {
   demo?: boolean;
 }
 
+/** The extension officer's reply to an "Ask the officer" request. Picked from a fixed list on the dashboard. */
+export interface OfficerReply {
+  verdict: "diagnosis" | "visit" | "retake";
+  stress?: StressClass;        // verdict = diagnosis
+  band?: "low" | "high";       // verdict = diagnosis: selects the action text
+  answeredAt: string;
+}
+
+/** Leaf photos the farmer chose to send with one check. Stays on the phone until Send is pressed. */
+export interface Ask {
+  id: string;                  // same id as the observation / report
+  plotId: string;
+  block: string;
+  takenAt: string;
+  images: string[];            // base64 JPEG, leaf crops, no EXIF
+  status: "queued" | "sent" | "answered";
+  reply?: OfficerReply;
+  seen?: boolean;
+}
+
 export interface ContextPack {
   plotId: string;
   builtAt: string;

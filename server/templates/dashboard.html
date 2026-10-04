@@ -12,7 +12,7 @@
   .live { width:8px; height:8px; border-radius:50%; background:#4ade80; box-shadow:0 0 0 0 rgba(74,222,128,.6); animation:pulse 2s infinite; }
   @keyframes pulse { 70% { box-shadow:0 0 0 7px rgba(74,222,128,0); } 100% { box-shadow:0 0 0 0 rgba(74,222,128,0); } }
   main.wrap { padding-top:20px; padding-bottom:8px; display:flex; flex-direction:column; gap:16px; }
-  .kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+  .kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; }
   .kpi { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:center; }
   .kpi > span { width:44px; height:44px; border-radius:12px; background:var(--brand-tint); color:var(--accent-ink); display:grid; place-items:center; flex:none; }
   .kpi.attn > span { background:var(--warn-bg); color:var(--warn); }
@@ -44,6 +44,14 @@
   .sms { font-size:14px; background:var(--surface); border:1px solid var(--line); border-radius:4px 14px 14px 14px; padding:8px 12px; }
   .alert form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .alert input[type=text] { flex:1; min-width:140px; min-height:44px; font:inherit; padding:0 12px; border:1.5px solid var(--line-strong); border-radius:12px; background:var(--surface); }
+  .consults { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; }
+  .consult { border:1px solid var(--line-strong); border-left:5px solid var(--brand-2); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+  .consult.answered { border-left-color:var(--ok); background:#f7f9fb; }
+  .shots { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .shots img { display:block; width:100%; aspect-ratio:4 / 3; object-fit:cover; border-radius:8px; background:#e4eaf0; }
+  .consult form { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .consult form .wide { grid-column:1 / -1; }
+  .consult select, .consult input[type=text] { min-height:44px; width:100%; font:inherit; padding:0 10px; border:1.5px solid var(--line-strong); border-radius:12px; background:var(--surface); color:var(--ink); }
   .empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:28px 12px; color:var(--muted); font-size:14.5px; }
   .empty > span { width:56px; height:56px; border-radius:50%; background:#eef2f6; display:grid; place-items:center; }
   .scroll { overflow:auto; max-height:460px; }
@@ -66,6 +74,7 @@
   td.msg { min-width:260px; }
   .leaflet-popup-content { font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; margin:12px 14px; }
   .leaflet-popup-content b { font-size:15px; }
+  @media (max-width:1100px) { .kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
   @media (max-width:980px) { .cols { grid-template-columns:minmax(0,1fr); } .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } #map { height:380px; } }
   @media (max-width:560px) { .wrap { padding:0 14px; } .coop { padding-left:0; border-left:0; width:100%; } .topbar .status { margin-left:0; } }
   @media (prefers-reduced-motion:reduce) { .live { animation:none; } }
@@ -90,6 +99,7 @@
     <div class="kpi"><span>{{ icon("pin", 22) }}</span><div><b class="num">{{ n_reporting }} <span class="muted" style="font-size:16px;font-weight:600">/ {{ n_plots }}</span></b><small>plots have reported</small></div></div>
     <div class="kpi {{ 'attn' if flagged }}"><span>{{ icon("list", 22) }}</span><div><b class="num">{{ flagged|length }}</b><small>blocks to visit</small></div></div>
     <div class="kpi {{ 'attn' if n_draft }}"><span>{{ icon("bell", 22) }}</span><div><b class="num">{{ n_draft }}</b><small>alert{{ "" if n_draft == 1 else "s" }} waiting for a decision</small></div></div>
+    <div class="kpi {{ 'attn' if n_open }}"><span>{{ icon("camera", 22) }}</span><div><b class="num">{{ n_open }}</b><small>photo request{{ "" if n_open == 1 else "s" }} to answer</small></div></div>
   </div>
 
   <div class="cols">
@@ -143,6 +153,45 @@
       </div>
     </section>
   </div>
+
+  <section class="panel" id="consults">
+    <div class="panel-head">
+      <h2>{{ icon("camera", 20) }} Photo requests from farmers</h2>
+      <p>These farmers chose to send their leaf photos and ask for advice. Reply from the fixed list; the phone picks the reply up at its next sync.</p>
+    </div>
+    {% if not consults %}
+    <div class="empty"><span>{{ icon("camera", 26) }}</span>No photo requests. They appear when a farmer switches on "Ask the extension officer" for a check and presses Send.</div>
+    {% endif %}
+    <div class="consults">
+    {% for c in consults %}
+      <div class="consult {{ c.status }}">
+        <div class="alert-head">
+          <b>{{ c.plot_id }} · block {{ c.block }}</b>
+          <span class="chip {{ 'warn' if c.status == 'open' else 'ok' }}">{{ "Waiting for a reply" if c.status == "open" else "Answered" }}</span>
+          <span class="muted small">{{ c.created_at|ts }} UTC</span>
+        </div>
+        <div class="shots">{% for n in range(c.n_images) %}<a href="/consults/{{ c.id }}/{{ n }}.jpg" target="_blank" rel="noopener"><img src="/consults/{{ c.id }}/{{ n }}.jpg" alt="Leaf photo {{ n + 1 }} from {{ c.plot_id }}" loading="lazy"></a>{% endfor %}</div>
+        {% if c.report %}<div class="small"><span class="label">The app said</span>
+          <span class="stress"><i class="dot" data-stress="{{ c.report.stress }}"></i>{{ stress_label[c.report.stress] }}</span>{% if c.report.stress != "not_sure" %}{% if c.report.severity is not none %} · {{ sev[c.report.severity] }}{% endif %} · confidence {{ "%d%%"|format((c.report.confidence or 0) * 100) }}{% endif %}</div>{% endif %}
+        {% if c.status == "open" %}
+        <form method="post" action="/consults/{{ c.id }}/reply">
+          <select name="reply" class="wide" required aria-label="Reply">
+            <option value="" disabled selected>Choose a reply…</option>
+            <optgroup label="I can see what it is">{% for k in reply_stresses %}<option value="{{ k }}">{{ stress_label[k] }}</option>{% endfor %}</optgroup>
+            <optgroup label="I cannot tell from the photos"><option value="visit">I will visit this block</option><option value="retake">Photos are not clear: ask for new ones</option></optgroup>
+          </select>
+          <select name="band" aria-label="How bad"><option value="low">Low: check more trees</option><option value="high">High: come to the cooperative</option></select>
+          <input type="text" name="officer" value="Extension officer" aria-label="Officer name">
+          <button class="btn primary wide">{{ icon("send") }} Send reply</button>
+        </form>
+        {% else %}
+        <p class="muted small"><b>{% if c.verdict == "diagnosis" %}{{ stress_label[c.stress] }}{% if c.stress != "healthy" %} ({{ c.band }}){% endif %}{% elif c.verdict == "visit" %}Will visit this block{% else %}Asked for new photos{% endif %}</b>
+          · {{ c.officer }} · {{ c.answered_at|ts }} UTC</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </section>
 
   <section class="panel">
     <div class="panel-head">
@@ -249,7 +298,7 @@
   } catch (e) { document.getElementById("map").textContent = "Map unavailable offline; see the tables."; }
   // auto refresh unless the officer is typing or reading a map popup
   setInterval(() => {
-    const typing = document.activeElement && document.activeElement.tagName === "INPUT";
+    const typing = document.activeElement && ["INPUT", "SELECT"].includes(document.activeElement.tagName);
     if (!typing && !document.querySelector(".leaflet-popup")) location.reload();
   }, 15000);
 </script>

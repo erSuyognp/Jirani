@@ -1,12 +1,15 @@
 // Past checks for this plot, per block: severity over time and the list of checks.
-import { Camera, Check, ClipboardList, Clock } from "lucide-react";
+import { Ban, Camera, Check, ClipboardList, Clock, Images, MessageSquare, UserRound } from "lucide-react";
+import { Fragment } from "react";
+import { officerSms, smsUri } from "../handoff/sms";
 import type { Answers } from "../logic/answers";
-import type { Lang, Observation } from "../logic/types";
+import { officerText } from "../logic/officer";
+import type { Ask, Lang, Observation } from "../logic/types";
 import { t } from "./i18n";
 import { fmtDate, SeverityMeter, StressBadge, toneOf, TrendIcon } from "./widgets";
 
-export function History({ lang, A, obs, plotId, onCheck }: {
-  lang: Lang; A: Answers; obs: Observation[]; plotId: string | null; onCheck: () => void;
+export function History({ lang, A, obs, asks, phone, plotId, onCheck }: {
+  lang: Lang; A: Answers; obs: Observation[]; asks: Ask[]; phone: string; plotId: string | null; onCheck: () => void;
 }) {
   const T = (k: string) => t(lang, k);
   const mine = obs.filter((o) => o.plotId === plotId);
@@ -38,8 +41,12 @@ export function History({ lang, A, obs, plotId, onCheck }: {
               ))}
             </div>
             <ul className="list flush">
-              {[...list].reverse().map((o) => (
-                <li key={o.id} className="row">
+              {[...list].reverse().map((o) => {
+                const a = asks.find((x) => x.id === o.id);
+                const reply = a?.reply ? officerText(a.reply, A, lang) : null;
+                return (
+                <Fragment key={o.id}>
+                <li className="row">
                   <StressBadge stress={o.stress} size={36} />
                   <span className="row-main">
                     <b>{A.stress[o.stress][lang]}</b>
@@ -51,11 +58,23 @@ export function History({ lang, A, obs, plotId, onCheck }: {
                       {o.demo && <i className="chip demo">{T("demo_label")}</i>}
                       {o.synced && !o.demo && <i className="chip ok"><Check size={12} strokeWidth={3} aria-hidden /> {T("sent")}</i>}
                       {!o.synced && <i className="chip"><Clock size={12} aria-hidden /> {T("not_sent")}</i>}
+                      {a && !a.reply && <i className="chip info"><Images size={12} aria-hidden /> {T(a.status === "queued" ? "ask_chip_queued" : "ask_chip_sent")}</i>}
                     </span>
                   </span>
                   <span className="row-end">{fmtDate(o.takenAt, lang, true)}</span>
                 </li>
-              ))}
+                {a?.reply && reply && (
+                  <li className={`reply ${a.seen ? "" : "new"}`}>
+                    <div className="label"><UserRound size={15} aria-hidden /> {T("officer_reply_title")} · {fmtDate(a.reply.answeredAt, lang)}</div>
+                    <b>{reply.headline}</b>
+                    {reply.action && <p>{reply.action}</p>}
+                    {reply.doNot && <p className="reply-dont"><Ban size={15} aria-hidden /> {reply.doNot}</p>}
+                    {phone && <a className="btn secondary" href={smsUri(phone, officerSms(a.reply, o.block, A, lang))}><MessageSquare size={20} aria-hidden /> {T("send_sms")}</a>}
+                  </li>
+                )}
+                </Fragment>
+                );
+              })}
             </ul>
           </section>
         );

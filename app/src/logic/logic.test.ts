@@ -1,14 +1,15 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { STRESS_CLASSES, type StressClass } from "../config";
-import { buildSms, isGsm7, smsUri } from "../handoff/sms";
+import { buildSms, isGsm7, officerSms, smsUri } from "../handoff/sms";
 import { aggregate } from "./aggregate";
 import type { Answers } from "./answers";
 import { actionKey, buildCard } from "./card";
 import { rankCauses } from "./causes";
+import { officerText } from "./officer";
 import { refusalReason } from "./refusal";
 import { computeTrend } from "./trend";
-import type { ContextPack, Diagnosis, LeafResult, Observation, Trend } from "./types";
+import type { ContextPack, Diagnosis, LeafResult, Observation, OfficerReply, Trend } from "./types";
 
 const A: Answers = JSON.parse(readFileSync("public/content/answers.json", "utf8"));
 const TAU = 0.8;
@@ -202,6 +203,35 @@ describe("card + SMS", () => {
   it("sms: URI uses & on iOS and ? on Android", () => {
     expect(smsUri("+254 700 000000", "hi there", true)).toBe("sms:+254700000000&body=hi%20there");
     expect(smsUri("0700000000", "hi", false)).toBe("sms:0700000000?body=hi");
+  });
+});
+
+describe("officer reply (ask the officer)", () => {
+  const replies: OfficerReply[] = [
+    ...STRESS_CLASSES.flatMap((stress) => (["low", "high"] as const).map((band): OfficerReply => (
+      { verdict: "diagnosis", stress, band, answeredAt: "2026-11-28T10:00:00Z" }))),
+    { verdict: "visit", answeredAt: "2026-11-28T10:00:00Z" },
+    { verdict: "retake", answeredAt: "2026-11-28T10:00:00Z" },
+  ];
+  it("every reply has fixed text and a single-segment GSM-7 SMS in both languages", () => {
+    for (const lang of ["en", "sw"] as const)
+      for (const r of replies) {
+        const text = officerText(r, A, lang);
+        expect(text.headline.length).toBeGreaterThan(10);
+        expect(text.headline).not.toMatch(/[{}]/);
+        for (const block of ["B", "Upper", "Lower-2"]) {
+          const sms = officerSms(r, block, A, lang);
+          expect(sms.length).toBeLessThanOrEqual(160);
+          expect(isGsm7(sms)).toBe(true);
+        }
+      }
+  });
+  it("a diagnosis reply uses the same action and do-not text as the card", () => {
+    const text = officerText({ verdict: "diagnosis", stress: "rust", band: "high", answeredAt: "2026-10-04T08:00:00Z" }, A, "en");
+    expect(text.headline).toBe("The officer looked at your photos: Leaf rust.");
+    expect(text.action).toBe(A.action["rust.high"].en);
+    expect(text.doNot).toBe(A.do_not.rust.en);
+    expect(officerText({ verdict: "visit", answeredAt: "2026-10-04T08:00:00Z" }, A, "en").action).toBeNull();
   });
 });
 

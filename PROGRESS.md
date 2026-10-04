@@ -146,7 +146,25 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Context packs rebuilt for the new coordinates (40/40, soil pH 5.8–6.2). The app and APK bundle the new `plots.json` and packs.
 - Tests: server 18/18 (new: landing + dashboard render, registry sync), app 26/26.
 - Checked locally on port 8010 with a fresh database: landing page (desktop width) and dashboard (desktop and 500 px wide) render, simulate_outbreak → draft alert → Approve → 9 "would be sent" rows.
-- Not checked: the live Render deploy (needs a push), the landing page at phone width, the "Map" street layer. The rebuilt APK was not installed (the phone was no longer on adb).
+- Not checked: the live Render deploy (needs a push), the landing page at phone width, the "Map" street layer. The rebuilt APK (new plot coordinates and packs) is installed on the Galaxy A14 and opens to Home; no check was run on it after this rebuild.
+
+### Ask the officer: opt-in photos and fixed replies (2026-10-03)
+- **Decision (user, 2026-10-03):** leaf photos may leave the phone when the farmer asks for advice. This replaces the spec's "photos never leave the phone" (guardrail 5) with "photos leave only when the farmer chooses, per check".
+- App:
+  - A switch on the result card, "Ask the extension officer", off by default. Saving with it on stores that check's three leaf images (canvas re-encoded, 640 px, no EXIF) in a new IndexedDB store (`asks`, database version 2).
+  - Sync lists the photos that will go, sends them after the report (`POST /api/consults`), then asks for replies (`GET /api/consults/replies`). With nothing left to send, the button reads "Check for the officer's reply".
+  - A reply shows on Home as a notice and in History under the check, using the same action and do-not text as the card (`answers.json`), with an SMS button when a basic-phone number is set.
+- Server and dashboard:
+  - `consults` table; photos are accepted only for an existing report of the same plot, 1 to 3 JPEGs, no other fields. Report packets still refuse photos.
+  - "Photo requests from farmers" panel: the photos, what the app said, and a reply from a fixed list (diagnosis + low/high, "I will visit", "photos not clear"). No free text, so the no-chemicals rule and Kiswahili coverage hold.
+- Tests: app 28/28 (every reply in both languages fits one GSM-7 SMS), server 20/20.
+- Checked end to end in the browser against a local server: "Not sure" check with the switch on → Sync showed 3 photos (38 KB) → Send → request on the dashboard → reply "Leaf rust, high" → app showed "Officer replies: 1", the Home notice and the reply in History. The database upgraded from version 1 with data in place.
+- Checked on the Galaxy A14 (new APK): existing history survived the database upgrade; a gallery check with the switch on saved, and Sync listed "Block C, 3 leaf photos, about 67 KB". **Send was not pressed on the phone**: the APK talks to the live Render server, which does not have the new endpoints until this is pushed. Until then a Send delivers the reports and leaves the photos queued with an error.
+- Limits:
+  - The dashboard has no login, so sent photos are visible to anyone with the link. Render's free plan wipes them on restart.
+  - "Clear all data on this phone" does not delete photos already sent to the server.
+  - The phone gets the reply only when the farmer presses Sync again; there is no push message.
+  - New strings and reply texts are machine-drafted Kiswahili.
 
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):

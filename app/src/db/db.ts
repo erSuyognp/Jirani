@@ -1,6 +1,7 @@
-// IndexedDB: observations, outbox queue, settings. Everything stays on this phone until the user taps Send.
+// IndexedDB: observations, outbox queue, "ask the officer" photos, settings.
+// Everything stays on this phone until the user taps Send.
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
-import type { Lang, Observation } from "../logic/types";
+import type { Ask, Lang, Observation } from "../logic/types";
 
 export interface Packet {
   id: string;
@@ -26,17 +27,21 @@ export interface Settings {
 interface JiraniDB extends DBSchema {
   observations: { key: string; value: Observation; indexes: { byTime: string } };
   outbox: { key: string; value: Packet };
+  asks: { key: string; value: Ask };
   kv: { key: string; value: unknown };
 }
 
 let dbp: Promise<IDBPDatabase<JiraniDB>> | null = null;
 function db() {
-  dbp ??= openDB<JiraniDB>("jirani", 1, {
-    upgrade(d) {
-      const o = d.createObjectStore("observations", { keyPath: "id" });
-      o.createIndex("byTime", "takenAt");
-      d.createObjectStore("outbox", { keyPath: "id" });
-      d.createObjectStore("kv");
+  dbp ??= openDB<JiraniDB>("jirani", 2, {
+    upgrade(d, oldVersion) {
+      if (oldVersion < 1) {
+        const o = d.createObjectStore("observations", { keyPath: "id" });
+        o.createIndex("byTime", "takenAt");
+        d.createObjectStore("outbox", { keyPath: "id" });
+        d.createObjectStore("kv");
+      }
+      if (oldVersion < 2) d.createObjectStore("asks", { keyPath: "id" });
     },
   });
   return dbp;
@@ -82,8 +87,15 @@ export async function markSynced(ids: string[]) {
   await tx.done;
 }
 
+export async function putAsk(a: Ask) {
+  await (await db()).put("asks", a);
+}
+export async function allAsks(): Promise<Ask[]> {
+  return (await db()).getAll("asks");
+}
+
 /** "Clear all data on this phone" (lost or shared phones). */
 export async function clearAll() {
   const d = await db();
-  await Promise.all([d.clear("observations"), d.clear("outbox"), d.clear("kv")]);
+  await Promise.all([d.clear("observations"), d.clear("outbox"), d.clear("asks"), d.clear("kv")]);
 }

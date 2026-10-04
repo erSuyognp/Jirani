@@ -1,13 +1,13 @@
 // Home: start a check, see the latest result per block, and what is waiting to be sent.
-import { Camera, ChevronRight, CircleCheck, Loader, MapPin, Send } from "lucide-react";
+import { Camera, ChevronRight, CircleCheck, Loader, MapPin, Send, UserRound } from "lucide-react";
 import type { Answers } from "../logic/answers";
 import type { Lang, Observation } from "../logic/types";
 import { t } from "./i18n";
 import type { Plot } from "./types";
 import { fmtDate, SeverityMeter, StressBadge, type Tab, toneOf, TrendIcon } from "./widgets";
 
-export function Home({ lang, plot, obs, A, queued, offlineReady, onCheck, go }: {
-  lang: Lang; plot: Plot | null; obs: Observation[]; A: Answers; queued: number; offlineReady: boolean;
+export function Home({ lang, plot, obs, A, queued, replies, offlineReady, onCheck, go }: {
+  lang: Lang; plot: Plot | null; obs: Observation[]; A: Answers; queued: number; replies: number; offlineReady: boolean;
   onCheck: () => void; go: (t: Tab) => void;
 }) {
   const T = (k: string, v?: Record<string, string | number>) => t(lang, k, v);
@@ -21,6 +21,13 @@ export function Home({ lang, plot, obs, A, queued, offlineReady, onCheck, go }: 
         {plot && <div className="hero-plot"><MapPin size={15} aria-hidden /> {T("plot")} {plot.plot_id}</div>}
       </section>
 
+      {replies > 0 && (
+        <button className="notice reply" onClick={() => go("history")}>
+          <span className="notice-icon"><UserRound size={18} aria-hidden /></span>
+          <span>{T("ask_new_reply", { n: replies })}</span>
+          <ChevronRight size={20} aria-hidden />
+        </button>
+      )}
       {queued > 0 && (
         <button className="notice" onClick={() => go("sync")}>
           <span className="notice-icon"><Send size={18} aria-hidden /></span>

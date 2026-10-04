@@ -1,7 +1,7 @@
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { STRESS_CLASSES } from "../config";
-import { addObservation, allObservations, DEFAULT_SETTINGS, getSettings, saveSettings, type Settings } from "../db/db";
+import { addObservation, allAsks, allObservations, DEFAULT_SETTINGS, getSettings, putAsk, saveSettings, type Settings } from "../db/db";
 import { buildSms } from "../handoff/sms";
 import { loadModel, type ModelMeta, type StressHead } from "../inference/model";
 import { heatmapFor, type Photo, processPhoto } from "../inference/pipeline";
@@ -10,8 +10,9 @@ import type { Answers } from "../logic/answers";
 import { buildCard } from "../logic/card";
 import { rankCauses } from "../logic/causes";
 import { computeTrend } from "../logic/trend";
-import type { ContextPack, Lang, Observation } from "../logic/types";
-import { pending, queue } from "../sync/outbox";
+import type { Ask, ContextPack, Lang, Observation } from "../logic/types";
+import { askImages } from "../sync/ask";
+import { pending, queue, queuedAsks } from "../sync/outbox";
 import { Capture, Questions } from "./Check";
 import { History } from "./History";
 import { Home } from "./Home";
@@ -51,6 +52,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState<CheckAnswers>({ block: "", changed: null, sprayed: null });
   const [result, setResult] = useState<Result | null>(null);
+  const [ask, setAsk] = useState(false); // "Ask the officer": send this check's leaf photos (opt-in)
+  const [asks, setAsks] = useState<Ask[]>([]);
   const [dialog, setDialog] = useState<DialogSpec | null>(null);
   const [toast, setToast] = useState<ToastSpec | null>(null);
   const L: Lang = S.lang;
@@ -69,7 +72,7 @@ export default function App() {
         setA(await (await fetch(`${BASE}content/answers.json`)).json());
         setPlots((await (await fetch(`${BASE}content/plots.json`)).json()).plots);
         setModel(await loadModel());
-        setQueued((await pending()).length);
+        await refreshQueued();
         if (!s.plotId) setScreen("welcome");
         setReady("ok");
         styleSystemBars();
@@ -97,8 +100,19 @@ export default function App() {
   }, [S.plotId]);
 
   useEffect(() => {
-    if (ready === "ok" && (screen === "home" || screen === "history")) allObservations().then(setObs);
+    if (ready !== "ok" || (screen !== "home" && screen !== "history")) return;
+    allObservations().then(setObs);
+    allAsks().then((all) => {
+      setAsks(all);
+      // opening History marks officer replies as read (this visit still shows them as new)
+      if (screen === "history") all.filter((a) => a.reply && !a.seen).forEach((a) => putAsk({ ...a, seen: true }));
+    });
   }, [ready, screen]);
+
+  /** Sync badge: reports waiting, or photo requests waiting when their reports already went. */
+  async function refreshQueued() {
+    setQueued((await pending()).length || (await queuedAsks()).length);
+  }
 
   useEffect(() => { document.documentElement.lang = L; }, [L]);
 
@@ -112,6 +126,7 @@ export default function App() {
     tap();
     setPhotos([]);
     setResult(null);
+    setAsk(false);
     setQ({ block: "", changed: null, sprayed: null });
     setScreen("capture");
   }
@@ -172,10 +187,14 @@ export default function App() {
     if (!result) return;
     await addObservation(result.obs);
     await queue(result.obs);
-    setQueued((await pending()).length);
+    if (ask) {
+      const { id, plotId, block, takenAt } = result.obs;
+      await putAsk({ id, plotId, block, takenAt, images: await askImages(photos), status: "queued" });
+    }
+    await refreshQueued();
     setResult(null);
     setScreen("home");
-    notify(tr("check_saved"), "ok");
+    notify(tr(ask ? "ask_saved" : "check_saved"), "ok");
   }
 
   function goBack() {
@@ -231,7 +250,8 @@ export default function App() {
       )}
 
       {screen === "home" && A && (
-        <Home lang={L} plot={plot} obs={obs} A={A} queued={queued} offlineReady={offlineReady} onCheck={startCheck} go={setScreen} />
+        <Home lang={L} plot={plot} obs={obs} A={A} queued={queued} replies={asks.filter((a) => a.reply && !a.seen).length}
+          offlineReady={offlineReady} onCheck={startCheck} go={setScreen} />
       )}
       {screen === "capture" && (
         <Capture lang={L} photos={photos} busy={busy} onPhoto={addPhoto}
@@ -242,12 +262,13 @@ export default function App() {
         <Questions lang={L} blocks={plot.blocks} q={q} setQ={setQ} busy={busy} onDone={finish} />
       )}
       {screen === "card" && result && card && (
-        <ResultCard lang={L} r={result} card={card} sms={sms} settings={S} pack={pack} onSave={saveAndFinish} notify={notify} />
+        <ResultCard lang={L} r={result} card={card} sms={sms} settings={S} pack={pack} photos={photos} ask={ask} setAsk={setAsk}
+          onSave={saveAndFinish} notify={notify} />
       )}
 
-      {screen === "history" && A && <History lang={L} A={A} obs={obs} plotId={S.plotId} onCheck={startCheck} />}
+      {screen === "history" && A && <History lang={L} A={A} obs={obs} asks={asks} phone={S.phone} plotId={S.plotId} onCheck={startCheck} />}
       {screen === "sync" && A && (
-        <Sync lang={L} A={A} online={online} settings={S} notify={notify} onChanged={async () => setQueued((await pending()).length)} />
+        <Sync lang={L} A={A} online={online} settings={S} notify={notify} onChanged={refreshQueued} />
       )}
       {screen === "settings" && (
         <SettingsView lang={L} settings={S} plots={plots} update={updateSettings} model={model?.meta ?? null} ask={setDialog} notify={notify}
