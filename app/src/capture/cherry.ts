@@ -27,7 +27,7 @@ export function gradeCherryPixels(d: Uint8ClampedArray): CherryGrade {
     const mx = Math.max(r, g, b), mn = Math.min(r, g, b), delta = mx - mn;
     if (mx < c.darkValMax) { fruit++; defect++; continue; }   // blackened fruit (the card itself is white)
     if (delta / mx < c.satMin) {                               // not fruit: the white card, or shadow
-      if (mx >= c.cardValMin) card++;
+      if (delta / mx < c.cardSatMax && mx >= c.cardValMin) card++;
       continue;
     }
     let h: number;

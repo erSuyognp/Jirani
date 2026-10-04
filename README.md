@@ -113,7 +113,7 @@ Prerequisites: Python 3.11, Node 22.12+, git. Commands run from the repo root un
 cd app
 npm install
 npm run dev          # http://localhost:5173  (copies the onnxruntime wasm into public/ort first)
-npm test             # 38 unit tests: aggregation, refusal, trend, causes, cherry band (no price from the photo), SMS length, officer replies and visits, audio packs, no-chemicals scan
+npm test             # 39 unit tests: aggregation, refusal, trend, causes, cherry band (no price from the photo), SMS length, officer replies and visits, audio packs, no-chemicals scan
 npm run build        # production PWA in app/dist (set VITE_API_URL to point at your server)
 npm run preview      # serve dist on http://localhost:4173 (service worker active: test offline here)
 ```
@@ -241,7 +241,7 @@ person only: see `app/public/audio/ki/manifest.json` for the list and file names
 - **Brazilian training data.** BRACOL comes from Espírito Santo, Brazil. It has no Kenyan varieties (SL28, SL34, Ruiru 11) and no Kenyan field conditions. Accuracy on Kenyan leaves is **unknown**.
 - **Detached leaves only.** The model saw the lower side of single detached leaves on a white background. Cluttered backgrounds drop accuracy to 55%, which is why the app asks for the printed capture card (a white sheet with leaf boxes).
 - **The capture card is not detected.** The corner marks and the scale bar are printed for a later check. Today the app cannot tell whether the card was used, so it does not warn about it; the quality gate is the only gate. The model was not re-tested on photos taken on the card.
-- **Cherry band is a weekend prototype.** A colour heuristic with draft thresholds, tested only on generated images, never on real cherry and not on Kenyan varieties. It is not derived from BRACOL. The card says "Prototype grade, not a trained model. Confirm at the factory."
+- **Cherry band is a weekend prototype.** A colour heuristic with draft thresholds, checked on generated images and on four real photos from Wikimedia Commons (two close-ups of fruit on a white background, two taken on the tree, which it refuses). It has not been tried on a handful of cherry photographed on the printed card, and not on Kenyan varieties. It is not derived from BRACOL. The card says "Prototype grade, not a trained model. Confirm at the factory."
 - **Buyer tickets are synthetic.** Nine made-up demo tickets in the cooperative seed. They are not market prices.
 - **Gikuyu clips are placeholders.** No Gikuyu audio has been recorded, so the "Play prompt" control is silent and only shows the Kiswahili question.
 - **No nutrient-deficiency or abiotic classes.** These should fall through to "not sure", but that is not guaranteed.

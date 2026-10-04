@@ -266,6 +266,14 @@ describe("harvest slot (cherry band + buyer tickets)", () => {
       }
     }
   });
+  it("real cherry photos: ripe fruit on white gets a band, photos taken on the tree are refused", () => {
+    // 64-pixel thumbnails of Wikimedia Commons photos; sources and licences in src/capture/fixtures/README.md
+    const real = (name: string) => gradeCherryPixels(new Uint8ClampedArray(readFileSync(`src/capture/fixtures/${name}.rgba`)));
+    expect(real("cherry_two_ripe_on_white")).toMatchObject({ band: "A", issue: null });
+    expect(["B", "C"]).toContain(real("cherry_cut_and_beans_on_white").band);
+    expect(real("cherry_tree_far")).toMatchObject({ band: null, issue: "no_card" });
+    expect(real("cherry_on_branch")).toMatchObject({ band: null, issue: "no_card" });   // was graded C before the card rule was tightened
+  });
   it("the ticket range is the last three cooperative tickets of that band, from the registry", () => {
     expect(REG.synthetic).toBe(true);
     expect(ticketRange(REG, "B")).toEqual({ low: 310, high: 340, unit: "USD/50kg", synthetic: true });

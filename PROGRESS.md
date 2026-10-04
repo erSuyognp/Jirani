@@ -249,8 +249,8 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
 - **Gikuyu clips: none recorded.** The control is silent and only shows the Kiswahili question. The app, the project
   page and Settings say "Gikuyu clips are placeholders. Replace with human recordings before judging." Record the
   eight clips listed in `app/public/audio/ki/manifest.json`, set `recorded: true` on each and `placeholder: false`.
-- **Cherry band: a heuristic**, tried only on generated images (red and green discs on white). Never run on a photo
-  of real cherry.
+- **Cherry band: a heuristic**, checked on generated images and on four real web photos (see below). Never run on a
+  handful of cherry photographed on the printed card.
 - **Buyer tickets: synthetic** demo numbers.
 - **Kiswahili: machine-drafted**, including the six new clips (MMS-TTS, non-commercial) and every new string.
 - **`ml/holdout/ke/`: empty.**
@@ -273,7 +273,7 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
 - The cherry band is not stored in history and not sent to the cooperative; the report packet is unchanged.
 
 **Checked**
-- Tests: app 38/38 (was 29), server 25/25 (was 24), typecheck clean.
+- Tests: app 39/39 (was 29), server 25/25 (was 24), typecheck clean.
 - Browser, dev build, phone width: three sample rust leaves + a generated cherry image (20 red, 4 green discs) →
   "Band B. Last coop tickets 310–340 USD/50kg. Not a price offer." in English and Kiswahili, SMS 138 characters with
   " Daraja B."; dark-table image → "too dark, no grade"; empty card → "no cherry found"; three mixed leaves + an
@@ -292,6 +292,25 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
   (236 / 92 / 66 ms). The result was not saved.
 - **Not checked:** a cherry photo on the phone (camera or gallery); audio playback of the new clips by ear; the live
   sites (needs a push; Vercel and Render then rebuild); the simulation page end to end after these changes.
+
+**Real cherry photos (later the same day)**
+- Four photos from Wikimedia Commons were downloaded (originals in the gitignored `app/dev-samples/cherry/`) and run
+  through the heuristic: two ripe cherries on white → band A; cut fruit and pale beans on white → band C; a coffee
+  tree → refused ("no card"); **cherries on a branch → band C, which is wrong: there is no card in that photo.**
+- Cause: pale leaf highlights counted as "white card" (15.4% of the frame against a 15% minimum). Fix in
+  `CONFIG.cherry`: a card pixel must now be near-neutral (saturation below 0.2) and bright (value from 0.55), and the
+  card must fill at least 25% of the photo. The two on-tree photos now reach 7 to 8% and are refused; the two
+  on-white photos reach 51 to 60%. The limits come from the white paper in the BRACOL-style sample leaves
+  (saturation up to 0.15, value from 0.56).
+- The four photos are regression fixtures now (64 px thumbnails in `app/src/capture/fixtures/`, sources and licences
+  in its README and in DATA.md).
+- Galaxy A14, rebuilt APK: the on-branch photo → "The card is not visible around the cherry. No grade."; the two
+  ripe cherries on white → "Cherry photo added", then on the card "Band A. Last coop tickets 355–390 USD/50kg. Not a
+  price offer." The three leaves in that check gave "Not sure" (66%), and the card still said "Do not spray" and
+  "Not sure. Ask a person." next to Band A. Not saved.
+- Three test images are left on the phone in `Pictures/Jirani/`: `cherry_test_generated.jpg`,
+  `cherry_real_two_ripe_on_white.jpg`, `cherry_real_on_branch.jpg`.
+- Still not done: a real handful of cherry on the printed card, photographed with the phone camera.
 
 ### Waiting on the user
 - [ ] **Record the Gikuyu clips** (8 short clips, list in `app/public/audio/ki/manifest.json`), or accept the placeholder note in the demo.

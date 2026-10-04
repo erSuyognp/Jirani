@@ -48,8 +48,11 @@ export const CONFIG = {
   // Cherry band (optional fourth photo). PROTOTYPE colour-and-defect heuristic, not a trained model. DRAFT values.
   cherry: {
     fruitMinFraction: 0.05,     // cherry-coloured share of the photo below this = no cherry seen, no grade
-    cardMinFraction: 0.15,      // white-card share of the photo below this = not on the card, no grade
-    cardValMin: 0.6,            // an unsaturated pixel at least this bright counts as card
+    // White card: near-neutral and bright. Paper in phone photos measured saturation up to 0.15 and value from 0.56;
+    // two real photos of cherries on the tree reach a "card" share of 0.08-0.10 by these rules, so 0.25 refuses them.
+    cardMinFraction: 0.25,      // white-card share of the photo below this = not on the card, no grade
+    cardSatMax: 0.2,
+    cardValMin: 0.55,
     satMin: 0.3,                // below this a pixel is card or background, not fruit
     darkValMax: 0.22,           // fruit darker than this counts as a defect (overripe, dried, black)
     ripeHueMin: 335,            // ripe red wraps around 0 degrees: hue >= 335 or <= 12
