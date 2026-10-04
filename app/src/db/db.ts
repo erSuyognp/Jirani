@@ -1,7 +1,7 @@
 // IndexedDB: observations, outbox queue, "ask the officer" photos, settings.
 // Everything stays on this phone until the user taps Send.
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
-import type { Ask, Lang, Observation } from "../logic/types";
+import type { Ask, Lang, Observation, Visit } from "../logic/types";
 
 export interface Packet {
   id: string;
@@ -92,6 +92,14 @@ export async function putAsk(a: Ask) {
 }
 export async function allAsks(): Promise<Ask[]> {
   return (await db()).getAll("asks");
+}
+
+/** Officer visits for this plot, as last fetched from the cooperative. */
+export async function getVisits(): Promise<Visit[]> {
+  return ((await (await db()).get("kv", "visits")) as Visit[] | undefined) ?? [];
+}
+export async function saveVisits(v: Visit[]) {
+  await (await db()).put("kv", v, "visits");
 }
 
 /** "Clear all data on this phone" (lost or shared phones). */

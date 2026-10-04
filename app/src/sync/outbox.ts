@@ -2,8 +2,8 @@
 // Packet carries no name, phone number, photo or device location: plot id + class only.
 // Leaf photos go separately, and only for checks where the farmer chose "Ask the officer".
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
-import { allAsks, enqueue, markSynced, outbox, type Packet, putAsk } from "../db/db";
-import type { Ask, Observation, OfficerReply } from "../logic/types";
+import { allAsks, allObservations, enqueue, getVisits, markSynced, outbox, type Packet, putAsk, saveVisits } from "../db/db";
+import type { Ask, Observation, OfficerReply, Visit } from "../logic/types";
 
 export function packetFor(o: Observation): Packet {
   return {
@@ -40,15 +40,28 @@ async function http(method: "GET" | "POST", url: string, data?: unknown): Promis
 }
 const ok = (status: number) => status >= 200 && status < 300;
 
-export interface SendResult { ok: boolean; sent: number; photos: number; replies: number; error?: string }
+export interface SendResult { ok: boolean; sent: number; photos: number; replies: number; visits: boolean; error?: string }
+
+/** Photos of one check. If the server no longer has the report (free hosts wipe their disk), send it again first. */
+async function sendAsk(base: string, a: Ask): Promise<number> {
+  const body = { id: a.id, plotId: a.plotId, block: a.block, images: a.images };
+  let r = await http("POST", `${base}/api/consults`, body);
+  if (r.status === 422) {
+    const o = (await allObservations()).find((x) => x.id === a.id);
+    if (o && ok((await http("POST", `${base}/api/reports`, packetFor(o))).status)) r = await http("POST", `${base}/api/consults`, body);
+  }
+  return r.status;
+}
 
 /**
  * Only called from the Send button. On failure everything stays queued (idempotent by id on the server).
- * Order: reports, then the photos of checks where the farmer asked the officer, then any officer replies.
+ * Order: reports, then the photos of checks where the farmer asked the officer, then any officer replies,
+ * then the officer visits planned for this plot.
+ * A photo request that fails stays queued and does not hold back the others or the replies.
  */
-export async function send(serverUrl: string): Promise<SendResult> {
+export async function send(serverUrl: string, plotId: string | null): Promise<SendResult> {
   const base = serverUrl.replace(/\/$/, "");
-  const out: SendResult = { ok: true, sent: 0, photos: 0, replies: 0 };
+  const out: SendResult = { ok: true, sent: 0, photos: 0, replies: 0, visits: false };
   try {
     const packets = await pending();
     if (packets.length) {
@@ -59,8 +72,12 @@ export async function send(serverUrl: string): Promise<SendResult> {
     }
     const asks = await allAsks();
     for (const a of asks.filter((x) => x.status === "queued")) {
-      const r = await http("POST", `${base}/api/consults`, { id: a.id, plotId: a.plotId, block: a.block, images: a.images });
-      if (!ok(r.status)) return { ...out, ok: false, error: `HTTP ${r.status}` };
+      const status = await sendAsk(base, a);
+      if (!ok(status)) {
+        out.ok = false;
+        out.error = `HTTP ${status}`;
+        continue;
+      }
       a.status = "sent";
       await putAsk(a);
       out.photos++;
@@ -68,12 +85,22 @@ export async function send(serverUrl: string): Promise<SendResult> {
     const waiting = asks.filter((x) => x.status === "sent");
     if (waiting.length) {
       const r = await http("GET", `${base}/api/consults/replies?ids=${waiting.map((a) => encodeURIComponent(a.id)).join(",")}`);
-      const replies = ok(r.status) ? ((r.data as { replies?: (OfficerReply & { id: string })[] } | null)?.replies ?? []) : [];
-      for (const { id, ...reply } of replies) {
+      const data = ok(r.status) ? (r.data as { replies?: (OfficerReply & { id: string })[]; unknown?: string[] } | null) : null;
+      // the server lost these requests (wiped disk): queue them again for the next Send
+      for (const a of waiting.filter((x) => data?.unknown?.includes(x.id))) await putAsk({ ...a, status: "queued" });
+      for (const { id, ...reply } of data?.replies ?? []) {
         const a = waiting.find((x) => x.id === id);
         if (!a) continue;
         await putAsk({ ...a, status: "answered", reply, seen: false });
         out.replies++;
+      }
+    }
+    if (plotId) {
+      const r = await http("GET", `${base}/api/visits?plotId=${encodeURIComponent(plotId)}`);
+      if (ok(r.status)) {
+        const visits = (r.data as { visits?: Visit[] } | null)?.visits ?? [];
+        out.visits = visits.length > 0 && JSON.stringify(visits) !== JSON.stringify(await getVisits());
+        await saveVisits(visits);
       }
     }
     return out;

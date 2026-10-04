@@ -1,6 +1,6 @@
 // Past checks for this plot, per block: severity over time and the list of checks.
 import { Ban, Camera, Check, ClipboardList, Clock, Images, MessageSquare, UserRound } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { officerSms, smsUri } from "../handoff/sms";
 import type { Answers } from "../logic/answers";
 import { officerText } from "../logic/officer";
@@ -13,6 +13,9 @@ export function History({ lang, A, obs, asks, phone, plotId, onCheck }: {
 }) {
   const T = (k: string) => t(lang, k);
   const mine = obs.filter((o) => o.plotId === plotId);
+  // bring a new officer reply into view (the Home notice leads here)
+  const unread = asks.filter((a) => a.reply && !a.seen).length;
+  useEffect(() => { document.querySelector(".reply.new")?.scrollIntoView({ block: "center" }); }, [unread, obs.length]);
   if (!mine.length) {
     return (
       <main className="screen">

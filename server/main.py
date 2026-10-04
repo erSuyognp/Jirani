@@ -19,6 +19,7 @@ from markupsafe import Markup
 import config
 import outbreak
 import sms_gateway
+import tickets
 from models import connect, now_iso, seed_if_empty, sync_registry, upsert_report, validate_consult, validate_packet
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,6 +59,7 @@ def logo(size=28):
 templates.env.globals["icon"] = icon
 templates.env.globals["logo"] = logo
 templates.env.filters["ts"] = fmt_ts
+templates.env.filters["day"] = tickets.nice_date
 con = connect(config.DB_PATH)
 seed_if_empty(con, config.SEED_PATH)
 sync_registry(con, config.SEED_PATH)
@@ -97,6 +99,7 @@ def reports(payload=Body(...)):
         upsert_report(con, p, synthetic=bool(p.get("synthetic")))
     con.commit()
     alerts = outbreak.detect(con)
+    tickets.sync_from_reports(con)
     return {"accepted": len(packets), "ids": [p["id"] for p in packets],
             "alerts": [{"id": a, "change": c} for a, c in alerts]}
 
@@ -123,10 +126,12 @@ def consult_replies(ids: str = ""):
     """The phone asks for replies to its own requests (ids are the random report ids it created)."""
     wanted = [i for i in ids.split(",") if i][:50]
     if not wanted:
-        return {"replies": []}
-    rows = con.execute(f"SELECT * FROM consults WHERE status = 'answered' AND id IN ({','.join('?' * len(wanted))})",
-                       wanted).fetchall()
-    return {"replies": [{k: v for k, v in (("id", r["id"]), ("verdict", r["verdict"]), ("stress", r["stress"]),
+        return {"replies": [], "unknown": []}
+    marks = ",".join("?" * len(wanted))
+    rows = con.execute(f"SELECT * FROM consults WHERE status = 'answered' AND id IN ({marks})", wanted).fetchall()
+    known = {r[0] for r in con.execute(f"SELECT id FROM consults WHERE id IN ({marks})", wanted)}
+    # "unknown": requests this server no longer has (free hosts wipe their disk); the phone sends them again
+    return {"unknown": [i for i in wanted if i not in known], "replies": [{k: v for k, v in (("id", r["id"]), ("verdict", r["verdict"]), ("stress", r["stress"]),
                                              ("band", r["band"]), ("answeredAt", r["answered_at"])) if v is not None}
                         for r in rows]}
 
@@ -155,10 +160,65 @@ def consult_reply(consult_id: str, reply: str = Form(...), band: str = Form("low
     cur = con.execute("UPDATE consults SET status='answered', verdict=?, stress=?, band=?, officer=?, answered_at=? "
                       "WHERE id=? AND status='open'",
                       (verdict, stress, band, officer.strip()[:60] or "officer", now_iso(), consult_id))
+    if cur.rowcount and verdict == "visit":  # a promised visit goes onto the visit queue
+        rep = con.execute("SELECT * FROM reports WHERE id = ?", (consult_id,)).fetchone()
+        if rep:
+            tickets.open_ticket(con, dict(rep), "photo_request")
     con.commit()
     if not cur.rowcount and not con.execute("SELECT 1 FROM consults WHERE id = ?", (consult_id,)).fetchone():
         raise HTTPException(404)
     return RedirectResponse(DASHBOARD + "#consults", status_code=303)
+
+
+TICKETS_ANCHOR = DASHBOARD + "#tickets"
+
+
+@app.post("/tickets/create")
+def ticket_create(report_id: str = Form(...)):
+    """The officer adds a block from the visit list to the visit queue by hand."""
+    rep = con.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+    if not rep:
+        raise HTTPException(404)
+    tickets.open_ticket(con, dict(rep), "manual")
+    con.commit()
+    return RedirectResponse(TICKETS_ANCHOR, status_code=303)
+
+
+@app.post("/tickets/{ticket_id}/schedule")
+def ticket_schedule(ticket_id: int, visit_date: str = Form(...), slot: str = Form(...), officer: str = Form("officer")):
+    """The officer confirms (or changes) the visit. Only then is the farmer told: app at next sync, SMS to the outbox."""
+    t = con.execute("SELECT * FROM tickets WHERE id = ? AND status IN ('open','scheduled')", (ticket_id,)).fetchone()
+    if not t:
+        raise HTTPException(404)
+    if not tickets.valid_visit(visit_date, slot):
+        raise HTTPException(422, "visit date must be today or later, slot morning or afternoon")
+    con.execute("UPDATE tickets SET status='scheduled', visit_date=?, slot=?, officer=?, updated_at=? WHERE id=?",
+                (visit_date, slot, officer.strip()[:60] or "officer", now_iso(), ticket_id))
+    body = TEMPLATES["visit"].format(block=t["block"][:8], date=tickets.nice_date(visit_date), slot=slot)
+    r = gateway.send(t["plot_id"], body)
+    con.execute("""INSERT INTO sms_outbox (alert_id, ticket_id, plot_id, body, status, created_at, provider, provider_id,
+                   error, to_number_masked) VALUES (0,?,?,?,?,?,?,?,?,?)""",
+                (ticket_id, t["plot_id"], body, r.status, now_iso(), r.provider, r.provider_id, r.error, r.to_number_masked))
+    con.commit()
+    return RedirectResponse(TICKETS_ANCHOR, status_code=303)
+
+
+@app.post("/tickets/{ticket_id}/{action}")
+def ticket_close(ticket_id: int, action: str):
+    if action not in ("done", "cancel"):
+        raise HTTPException(404)
+    con.execute("UPDATE tickets SET status=?, updated_at=? WHERE id=? AND status IN ('open','scheduled')",
+                ("done" if action == "done" else "cancelled", now_iso(), ticket_id))
+    con.commit()
+    return RedirectResponse(TICKETS_ANCHOR, status_code=303)
+
+
+@app.get("/api/visits")
+def visits(plotId: str = ""):
+    """For the farmer's phone (fetched when she presses Sync): visits the officer has confirmed for her plot."""
+    rows = con.execute("SELECT * FROM tickets WHERE plot_id = ? AND status = 'scheduled' ORDER BY visit_date, id", (plotId,))
+    return {"visits": [{"id": t["id"], "block": t["block"], "stress": t["stress"], "date": t["visit_date"],
+                        "slot": t["slot"]} for t in rows]}
 
 
 @app.post("/alerts/{alert_id}/approve")
@@ -244,6 +304,15 @@ def dashboard(request: Request):
         a["recipients"] = outbreak.recipients(con, a) if a["status"] == "draft" else []
         alerts.append(a)
     outbox = [dict(r) for r in con.execute("SELECT * FROM sms_outbox ORDER BY id DESC LIMIT 200")]
+    queue = tickets.ranked(con)
+    ticketed = {(t["plot_id"], t["block"]) for t in queue}
+    for r in flagged:
+        r["ticketed"] = (r["plot_id"], r["block"]) in ticketed
+    recent_done = [dict(t) for t in con.execute(
+        "SELECT * FROM tickets WHERE status IN ('done','cancelled') ORDER BY updated_at DESC LIMIT 8")]
+    rank_by_plot = {}
+    for t in queue:
+        rank_by_plot.setdefault(t["plot_id"], t["rank"])
     by_id = {r["id"]: r for r in reps}
     consults = []
     for c in con.execute("SELECT * FROM consults ORDER BY status DESC, created_at DESC LIMIT 60"):  # open first
@@ -256,6 +325,7 @@ def dashboard(request: Request):
                  for pid, p in plots_.items()]
     for m in map_plots:
         m["when"] = fmt_ts(m.pop("taken_at")) if m["stress"] else None
+        m["rank"] = rank_by_plot.get(m["id"])
     return templates.TemplateResponse(request, "dashboard.html", {
         "flagged": flagged, "alerts": alerts, "outbox": outbox, "map_plots": map_plots, "sev": SEV,
         "counts": Counter(r["status"] for r in outbox), "n_reports": len(reps),
@@ -263,5 +333,6 @@ def dashboard(request: Request):
         "stress_label": STRESS_LABEL, "area": SEED.get("area", ""), "n_plots": len(plots_),
         "n_reporting": len(latest_plot), "n_draft": sum(a["status"] == "draft" for a in alerts),
         "rule": config.OUTBREAK, "consults": consults, "n_open": sum(c["status"] == "open" for c in consults),
-        "reply_stresses": REPLY_STRESSES,
+        "reply_stresses": REPLY_STRESSES, "queue": queue, "recent_done": recent_done,
+        "n_unscheduled": sum(t["status"] == "open" for t in queue), "ticket_rule": config.TICKETS,
     })

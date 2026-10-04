@@ -16,12 +16,15 @@ export interface Answers {
   cause: Record<string, { evidence?: Text; confirm?: Text } & Partial<Text>>;
   card: Record<string, Text>;
   officer: Record<string, Text>;
+  visit: Record<string, Text>;
   sms: {
     template_confident: Text;
     template_not_sure: Text;
     template_officer: Text;
     officer_visit: Text;
     officer_retake: Text;
+    visit: Text;
+    slot: Record<string, Text>;
     months: Record<Lang, string[]>;
     stress: Record<string, Text>;
     severity: Record<string, Text>;

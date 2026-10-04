@@ -38,6 +38,7 @@ Background evidence (with sources and `TODO: verify` flags): [EVIDENCE.md](EVIDE
 | F3 | **Cooperative sync and neighbour early warning** | Store-and-forward outbox; the user presses Send. The server detects ≥ 3 plots within 2 km with the same stress in 14 days and creates a **draft** alert. An officer approves it, and messages to about 9 neighbouring plots are written to the outbox as "would be sent" (mock SMS, see below). |
 | F4 | **Yield-drop cause ranking** | A transparent rule-based scorer combines the image result with a cached weather and soil pack (NASA POWER rain vs. 10-year normal, SoilGrids pH). It shows up to 3 causes plus "what this tool cannot see". |
 | F5 | **Ask the officer (opt-in photos)** | On any result, the farmer can switch on "Ask the extension officer". The three leaf photos (crops of at most 640 px with no EXIF; 38 KB for three photos in our test) then go with the next Sync. The officer sees them on the dashboard and replies from a fixed list: a diagnosis with low/high, "I will visit", or "send new photos". The reply reaches the phone at its next sync and can be forwarded to the basic phone as one SMS. |
+| F6 | **Visit queue (tickets)** | The server opens a visit ticket when a block reports severity high or above, gets worse at low severity or above, or when the officer answers a photo request with "I will visit". The dashboard ranks tickets by a transparent score (severity first, then worsening, outbreak area, promised visits, days waiting), numbers them on the map and suggests dates from the officer's capacity. When the officer confirms a date, the farmer's app shows "The officer will visit Block B on Monday 5 October, in the morning" with four fixed "until then" steps at its next sync, and a visit SMS is written to the mock outbox. |
 | Handoff | **Basic phone** | A single-segment SMS (≤ 160 GSM-7 characters, tested for every possible card in both languages) via an `sms:` link; Kiswahili audio built from pre-recorded clips; share audio over Bluetooth. |
 
 Every user-facing sentence comes from a fixed answer list (`app/public/content/answers.json`, i18n). There are
@@ -102,7 +103,7 @@ Prerequisites: Python 3.11, Node 22.12+, git. Commands run from the repo root un
 cd app
 npm install
 npm run dev          # http://localhost:5173  (copies the onnxruntime wasm into public/ort first)
-npm test             # 28 unit tests: aggregation, refusal, trend, causes, SMS length, officer replies, audio pack, no-chemicals scan
+npm test             # 29 unit tests: aggregation, refusal, trend, causes, SMS length, officer replies and visits, audio pack, no-chemicals scan
 npm run build        # production PWA in app/dist (set VITE_API_URL to point at your server)
 npm run preview      # serve dist on http://localhost:4173 (service worker active: test offline here)
 ```
@@ -132,7 +133,7 @@ python -m venv .venv
 .venv/Scripts/activate                              # Windows; on macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements-dev.txt
 uvicorn main:app --app-dir server --port 8000      # landing page http://localhost:8000, dashboard /dashboard
-python -m pytest server -q                          # 20 tests: outbreak rule, approval, privacy, photo requests, SMS allowlist, CORS, pages
+python -m pytest server -q                          # 23 tests: outbreak rule, approval, privacy, photo requests, visit tickets, SMS allowlist, CORS, pages
 python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbour rust reports (--all adds OND-0017)
 ```
 
@@ -196,7 +197,7 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
 - **Weak refusal on other crops' leaves.** On PlantDoc images (tomato and corn rusts, etc.) the model refuses only 48% of single images and 78% with the three-leaf rule. The quality gate adds some protection.
 - **Severity is a rough guide.** The "high" and "very high" classes are rare in the training data.
 - **Coarse context data.** The context pack comes from coarse global grids: one weather cell for the whole cooperative and a modelled soil pH. It is not a measurement.
-- **Draft cause rules.** The cause ranking and outbreak thresholds are **draft heuristics, not validated agronomy**.
+- **Draft cause rules.** The cause ranking, the outbreak thresholds, the visit-ticket rule and score, and the "until the officer comes" steps are **draft heuristics, not validated agronomy**.
 - **Mock neighbour SMS.** Alerts reach the outbox as "would be sent". Real delivery needs carrier registration with an SMS provider, which takes weeks and is out of scope.
 - **Audio transfer untested in the field.** Moving audio to a basic phone over Bluetooth is demonstrated, not field-tested.
 

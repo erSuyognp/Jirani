@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
   provider TEXT, provider_id TEXT, error TEXT, to_number_masked TEXT,
   delivery TEXT  -- provider delivery status (queued/sent/delivered/undelivered/failed + error code)
 );
+-- Visit tickets: which block the officer sees first, and the visit the farmer is told about.
+CREATE TABLE IF NOT EXISTS tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, plot_id TEXT NOT NULL, block TEXT NOT NULL, report_id TEXT,
+  stress TEXT NOT NULL, severity INTEGER, trend TEXT, synthetic INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',   -- open -> scheduled -> done | cancelled
+  visit_date TEXT, slot TEXT, officer TEXT, created_at TEXT NOT NULL, updated_at TEXT
+);
 -- "Ask the officer": leaf photos a farmer chose to send with one report, and the officer's fixed-list reply.
 CREATE TABLE IF NOT EXISTS consults (
   id TEXT PRIMARY KEY, plot_id TEXT NOT NULL, block TEXT NOT NULL, images_json TEXT NOT NULL,
@@ -52,7 +59,9 @@ def migrate(con):
     cols = {r[1] for r in con.execute("PRAGMA table_info(sms_outbox)")}
     if "delivery" not in cols:
         con.execute("ALTER TABLE sms_outbox ADD COLUMN delivery TEXT")
-        con.commit()
+    if "ticket_id" not in cols:  # visit messages: alert_id is 0 and ticket_id is set
+        con.execute("ALTER TABLE sms_outbox ADD COLUMN ticket_id INTEGER")
+    con.commit()
 
 
 def seed_if_empty(con, seed_path):

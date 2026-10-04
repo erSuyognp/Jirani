@@ -156,7 +156,7 @@ def test_ask_the_officer_photos_and_fixed_reply(client):
     assert c.get("/consults/r1/3.jpg").status_code == 404
     assert "Photo requests from farmers" in c.get("/dashboard").text and "/consults/r1/0.jpg" in c.get("/dashboard").text
     # no reply until the officer answers; replies come only from the fixed list
-    assert c.get("/api/consults/replies?ids=r1,unknown").json() == {"replies": []}
+    assert c.get("/api/consults/replies?ids=r1,lost").json() == {"replies": [], "unknown": ["lost"]}
     assert c.post("/consults/r1/reply", data={"reply": "spray something"}, follow_redirects=False).status_code == 422
     r = c.post("/consults/r1/reply", data={"reply": "rust", "band": "high", "officer": "Officer A"}, follow_redirects=False)
     assert r.status_code == 303
@@ -170,6 +170,69 @@ def test_ask_the_officer_photos_and_fixed_reply(client):
 def test_report_packets_still_refuse_photos(client):
     c, _ = client
     assert c.post("/api/reports", json=pkt(1, "OND-0017", images=[JPEG])).status_code == 422
+
+
+def test_visit_tickets_rank_by_severity_and_tell_the_farmer_after_confirmation(client):
+    import tickets
+    c, main = client
+    n1, n2, n3 = near_demo(3)
+    c.post("/api/reports", json=[
+        {**pkt(1, n1, sev=1), "trend": "first"},     # very low, not worse: no ticket
+        {**pkt(2, n2, sev=3), "trend": "first"},     # high: ticket
+        {**pkt(3, n3, sev=2), "trend": "worse"},     # low but getting worse: ticket
+        {**pkt(4, "OND-0017", sev=4), "trend": "worse"},   # very high and worse: goes first
+    ])
+    q = tickets.ranked(main.con)
+    assert [(t["plot_id"], t["rank"]) for t in q] == [("OND-0017", 1), (n2, 2), (n3, 3)]
+    assert "high severity" in q[0]["why"] and "getting worse" in q[0]["why"]
+    assert all(t["status"] == "open" and t["suggest_date"] > ts()[:10] for t in q)
+    c.post("/api/reports", json=[{**pkt(4, "OND-0017", sev=4), "trend": "worse"}])      # resend: still one ticket per block
+    assert len(tickets.ranked(main.con)) == 3
+    # nothing is told to the farmer until the officer confirms the visit
+    assert c.get("/api/visits?plotId=OND-0017").json() == {"visits": []}
+    first = q[0]
+    past = c.post(f"/tickets/{first['id']}/schedule", data={"visit_date": "2020-01-01", "slot": "morning"}, follow_redirects=False)
+    assert past.status_code == 422
+    ok = c.post(f"/tickets/{first['id']}/schedule", data={"visit_date": first["suggest_date"], "slot": "afternoon"},
+                follow_redirects=False)
+    assert ok.status_code == 303
+    assert c.get("/api/visits?plotId=OND-0017").json() == {"visits": [
+        {"id": first["id"], "block": "A", "stress": "rust", "date": first["suggest_date"], "slot": "afternoon"}]}
+    sms = main.con.execute("SELECT * FROM sms_outbox WHERE ticket_id = ?", (first["id"],)).fetchall()
+    assert len(sms) == 1 and sms[0]["status"] == "would_send" and sms[0]["plot_id"] == "OND-0017"
+    assert "afternoon" in sms[0]["body"] and "do not spray" in sms[0]["body"] and len(sms[0]["body"]) <= 160
+    page = c.get("/dashboard").text
+    assert "Visit queue" in page and "Farmer told" in page and f"visit ticket #{first['id']}" in page
+    # the suggested slots respect the officer's capacity (2 per half day here)
+    taken = [(t["visit_date"] or t["suggest_date"], t["slot"] or t["suggest_slot"]) for t in tickets.ranked(main.con)]
+    assert all(taken.count(x) <= main.config.TICKETS["visits_per_day"] // 2 for x in taken)
+    c.post(f"/tickets/{first['id']}/done", follow_redirects=False)
+    assert c.get("/api/visits?plotId=OND-0017").json() == {"visits": []}
+    assert [t["rank"] for t in tickets.ranked(main.con)] == [1, 2]
+
+
+def test_promised_visit_and_manual_ticket(client):
+    import tickets
+    c, main = client
+    c.post("/api/reports", json=[pkt(1, "OND-0017", stress="not_sure", sev=None), {**pkt(2, "OND-0005", sev=1), "trend": "first"}])
+    assert tickets.ranked(main.con) == []
+    c.post("/api/consults", json={"id": "r1", "plotId": "OND-0017", "block": "A", "images": [JPEG]})
+    c.post("/consults/r1/reply", data={"reply": "visit"}, follow_redirects=False)
+    q = tickets.ranked(main.con)
+    assert len(q) == 1 and q[0]["source"] == "photo_request" and "visit promised" in q[0]["why"]
+    assert c.post("/tickets/create", data={"report_id": "r2"}, follow_redirects=False).status_code == 303
+    assert c.post("/tickets/create", data={"report_id": "nope"}, follow_redirects=False).status_code == 404
+    assert {t["plot_id"] for t in tickets.ranked(main.con)} == {"OND-0017", "OND-0005"}
+    c.post(f"/tickets/{q[0]['id']}/cancel", follow_redirects=False)
+    assert {t["plot_id"] for t in tickets.ranked(main.con)} == {"OND-0005"}
+
+
+def test_visit_sms_fits_one_segment():
+    import tickets
+    t = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "alert_templates.json"), encoding="utf8"))["visit"]
+    body = t.format(block="Lower-22", date=tickets.nice_date("2026-11-25"), slot="afternoon")
+    assert len(body) <= 160, len(body)
+    assert tickets.nice_date("2026-10-06") == "Tue 6 Oct"
 
 
 def test_all_alert_templates_fit_one_sms():

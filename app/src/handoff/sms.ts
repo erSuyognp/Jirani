@@ -2,7 +2,7 @@
 import { CONFIG } from "../config";
 import { type Answers, fill, pick } from "../logic/answers";
 import type { Card } from "../logic/card";
-import type { Lang, OfficerReply } from "../logic/types";
+import type { Lang, OfficerReply, Visit } from "../logic/types";
 
 // GSM 03.38 basic character set (no extension table, so every char is 1 septet).
 const GSM7 =
@@ -60,6 +60,19 @@ export function officerSms(reply: OfficerReply, block: string, A: Answers, lang:
     const t = reply.verdict === "visit" ? S.officer_visit : S.officer_retake;
     body = fill(pick(t, lang, `sms.officer_${reply.verdict}`), base);
   }
+  if (body.length > CONFIG.sms.maxChars || !isGsm7(body)) {
+    throw new Error(`SMS not single-segment GSM-7 (${body.length} chars): ${body}`);
+  }
+  return body;
+}
+
+/** Single-segment SMS for a confirmed officer visit: when, and what to do until then. */
+export function visitSms(v: Visit, A: Answers, lang: Lang): string {
+  const body = fill(pick(A.sms.visit, lang, "sms.visit"), {
+    block: v.block.slice(0, 8),
+    date: smsDate(new Date(`${v.date}T12:00:00`), A, lang),
+    slot: pick(A.sms.slot[v.slot], lang, "sms.slot"),
+  });
   if (body.length > CONFIG.sms.maxChars || !isGsm7(body)) {
     throw new Error(`SMS not single-segment GSM-7 (${body.length} chars): ${body}`);
   }

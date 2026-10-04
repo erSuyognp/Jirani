@@ -28,12 +28,13 @@ export function Sync({ lang, A, online, settings, onChanged, notify }: {
   async function sendAll() {
     setSending(true);
     setError("");
-    const r = await send(settings.serverUrl);
+    const r = await send(settings.serverUrl, settings.plotId);
     setSending(false);
     const done = [
       r.sent > 0 && T("sync_ok", { n: r.sent }),
       r.photos > 0 && T("ask_sent", { n: r.photos }),
       r.replies > 0 && T("ask_replies", { n: r.replies }),
+      r.visits && T("visit_news"),
     ].filter(Boolean).join(" · ");
     if (done) notify(done, "ok");
     else if (r.ok) notify(T("ask_no_reply"));
@@ -96,15 +97,13 @@ export function Sync({ lang, A, online, settings, onChanged, notify }: {
         {error && <Banner tone="bad" icon={<WifiOff size={20} aria-hidden />}>{T("sync_failed")}<small>{error}</small></Banner>}
         <p className="hint"><Server size={15} aria-hidden /> {T("sync_server")}: {settings.serverUrl.replace(/^https?:\/\//, "")}</p>
       </main>
-      {(n > 0 || queuedAsks.length > 0 || waiting > 0) && (
-        <div className="actionbar above-nav">
-          <button className="btn primary" disabled={!online || sending} onClick={sendAll}>
-            {sending ? <><span className="spinner small-spin light" /> {T("sync_sending")}</>
-              : n > 0 || queuedAsks.length > 0 ? <><Send size={20} aria-hidden /> {T("sync_send")} ({n || queuedAsks.length})</>
-              : <><RefreshCw size={20} aria-hidden /> {T("ask_check_replies")}</>}
-          </button>
-        </div>
-      )}
+      <div className="actionbar above-nav">
+        <button className={`btn ${n > 0 || queuedAsks.length > 0 ? "primary" : "secondary"}`} disabled={!online || sending} onClick={sendAll}>
+          {sending ? <><span className={`spinner small-spin ${n > 0 || queuedAsks.length > 0 ? "light" : ""}`} /> {T("sync_sending")}</>
+            : n > 0 || queuedAsks.length > 0 ? <><Send size={20} aria-hidden /> {T("sync_send")} ({n || queuedAsks.length})</>
+            : <><RefreshCw size={20} aria-hidden /> {T("ask_check_replies")}</>}
+        </button>
+      </div>
     </>
   );
 }

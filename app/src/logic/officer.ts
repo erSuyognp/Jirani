@@ -2,7 +2,7 @@
 // every sentence here still comes from answers.json by key.
 import { officerActionKey } from "../handoff/sms";
 import { type Answers, fill, pick } from "./answers";
-import type { Lang, OfficerReply } from "./types";
+import type { Lang, OfficerReply, Visit } from "./types";
 
 export interface OfficerText { headline: string; action: string | null; doNot: string | null }
 
@@ -17,4 +17,12 @@ export function officerText(reply: OfficerReply, A: Answers, lang: Lang): Office
   }
   const key = reply.verdict === "visit" ? "visit" : "retake";
   return { headline: pick(A.officer[key], lang, `officer.${key}`), action: null, doNot: null };
+}
+
+/** "The officer will visit Block B on ..." plus what to do until then. `date` is already formatted for the screen. */
+export function visitText(v: Visit, date: string, A: Answers, lang: Lang): { when: string; until: string[] } {
+  return {
+    when: fill(pick(A.visit.scheduled, lang, "visit.scheduled"), { block: v.block, date, slot: pick(A.visit[v.slot], lang, "visit.slot") }),
+    until: [1, 2, 3, 4].map((i) => pick(A.visit[`until_${i}`], lang, `visit.until_${i}`)),
+  };
 }

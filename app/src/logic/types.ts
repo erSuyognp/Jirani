@@ -55,6 +55,15 @@ export interface Ask {
   seen?: boolean;
 }
 
+/** A farm visit the officer has confirmed for this plot (from the dashboard's visit queue). */
+export interface Visit {
+  id: number;
+  block: string;
+  stress: string;
+  date: string;                // YYYY-MM-DD
+  slot: "morning" | "afternoon";
+}
+
 export interface ContextPack {
   plotId: string;
   builtAt: string;

@@ -160,11 +160,29 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Tests: app 28/28 (every reply in both languages fits one GSM-7 SMS), server 20/20.
 - Checked end to end in the browser against a local server: "Not sure" check with the switch on → Sync showed 3 photos (38 KB) → Send → request on the dashboard → reply "Leaf rust, high" → app showed "Officer replies: 1", the Home notice and the reply in History. The database upgraded from version 1 with data in place.
 - Checked on the Galaxy A14 (new APK): existing history survived the database upgrade; a gallery check with the switch on saved, and Sync listed "Block C, 3 leaf photos, about 67 KB". **Send was not pressed on the phone**: the APK talks to the live Render server, which does not have the new endpoints until this is pushed. Until then a Send delivers the reports and leaves the photos queued with an error.
+- Fix after the first live try (2026-10-03): the officer's reply did not reach the phone.
+  - Cause: an older photo request on the phone was rejected (HTTP 422) because its report had been sent before the deploy and Render wiped the database on redeploy; the app stopped at that error and never asked for replies.
+  - Fix in the app: a failed photo request stays queued without blocking the others or the replies; on a 422 the app re-sends that check's report and retries. Fix on the server: the replies endpoint also lists requests it no longer has (`unknown`), and the app queues those again.
+  - Also fixed: the Home notice for a new reply was laid out as a column (CSS class clash); History now scrolls to a new reply.
+  - Verified on the Galaxy A14 against the live server: Send delivered the stuck Block C photos, the reply ("Cercospora leaf spot", high) arrived, the Home notice showed, and History shows the reply under the check. The server-side `unknown` part is not live until pushed.
 - Limits:
   - The dashboard has no login, so sent photos are visible to anyone with the link. Render's free plan wipes them on restart.
   - "Clear all data on this phone" does not delete photos already sent to the server.
   - The phone gets the reply only when the farmer presses Sync again; there is no push message.
   - New strings and reply texts are machine-drafted Kiswahili.
+
+### Visit queue: tickets, schedule, farmer notice (2026-10-03)
+- Server (`server/tickets.py`, values in `config.TICKETS`, all DRAFT):
+  - A ticket opens for a block when its latest report is a confident disease at severity high or above, or at low or above with trend "worse"; when the officer answers a photo request with "I will visit"; or by hand ("Add to queue" on the visit list). One active ticket per block.
+  - Score: 10 per severity level, +5 worsening, +3 in an open outbreak alert, +4 promised visit, +1 per day waiting (max 5). Highest goes first.
+  - Suggested dates: from tomorrow (UTC), 4 visits a day (2 morning, 2 afternoon), no Sundays, after already confirmed visits.
+- Dashboard: "Visit queue: where to go first" with rank, reasons, a date and morning/afternoon the officer can change, Confirm visit / Change, Visited, remove. Rank numbers also show on the map; a KPI tile counts visits to schedule.
+- A person decides: the farmer is told nothing until the officer confirms. Confirming writes a visit SMS to the mock outbox ("would be sent") and exposes the visit to the phone (`GET /api/visits?plotId=`).
+- App: Sync now always has a button ("Send", or "Check for news from the cooperative" when nothing is queued). After a sync, Home shows an "Officer visit" card: the sentence with block, weekday and date, morning or afternoon, and four fixed "until then" steps from `answers.json`, plus an SMS button for the basic phone. Past visits drop off Home.
+- Tests: server 23/23 (ranking, one ticket per block, nothing told before confirmation, past dates refused, capacity, promised visit, manual ticket, SMS length), app 29/29 (visit text and SMS in both languages).
+- Checked end to end in the browser against a local server: synthetic reports → 4 tickets ranked (very high first) → confirm OND-0017 → app "Check for news" → Home card "The officer will visit Block B on Monday 5 October, in the morning." with the four steps.
+- Not checked: on the phone against the live server (needs a push first); the "Visited" and remove buttons in a browser (covered by tests only).
+- Limits: the visit steps are draft and not reviewed by an agronomist; the phone learns about a visit only when the farmer presses Sync; anyone who knows a plot id can read its confirmed visit dates; one officer and one capacity for the whole cooperative.
 
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):

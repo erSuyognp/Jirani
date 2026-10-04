@@ -12,6 +12,15 @@ OUTBREAK = {
     "stresses": ["miner", "rust", "phoma", "cercospora"],
 }
 
+# Visit tickets (which block the officer sees first). DRAFT heuristics, not validated.
+TICKETS = {
+    "min_severity": 3,          # a confident disease report at this severity opens a ticket
+    "worse_min_severity": 2,    # ... or at this severity when the trend is "worse"
+    "visits_per_day": 4,        # officer capacity used for the suggested dates (half morning, half afternoon)
+    "rest_weekday": 6,          # no visits suggested on this weekday (Monday = 0, Sunday = 6)
+    "weights": {"per_severity": 10, "worse": 5, "in_alert": 3, "photo_request": 4, "per_wait_day": 1, "max_wait_days": 5},
+}
+
 DB_PATH = os.environ.get("JIRANI_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "jirani.db"))
 SEED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_plots.json")
 # CORS: comma-separated list of app origins, e.g. "https://jirani.pages.dev,http://localhost:5173"

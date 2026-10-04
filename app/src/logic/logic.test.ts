@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { STRESS_CLASSES, type StressClass } from "../config";
-import { buildSms, isGsm7, officerSms, smsUri } from "../handoff/sms";
+import { buildSms, isGsm7, officerSms, smsUri, visitSms } from "../handoff/sms";
 import { aggregate } from "./aggregate";
 import type { Answers } from "./answers";
 import { actionKey, buildCard } from "./card";
 import { rankCauses } from "./causes";
-import { officerText } from "./officer";
+import { officerText, visitText } from "./officer";
 import { refusalReason } from "./refusal";
 import { computeTrend } from "./trend";
 import type { ContextPack, Diagnosis, LeafResult, Observation, OfficerReply, Trend } from "./types";
@@ -232,6 +232,26 @@ describe("officer reply (ask the officer)", () => {
     expect(text.action).toBe(A.action["rust.high"].en);
     expect(text.doNot).toBe(A.do_not.rust.en);
     expect(officerText({ verdict: "visit", answeredAt: "2026-10-04T08:00:00Z" }, A, "en").action).toBeNull();
+  });
+});
+
+describe("officer visit", () => {
+  it("says when the officer comes and what to do until then, and fits one SMS in both languages", () => {
+    for (const lang of ["en", "sw"] as const)
+      for (const slot of ["morning", "afternoon"] as const)
+        for (const block of ["B", "Lower-22"]) {
+          const v = { id: 1, block, stress: "rust", date: "2026-11-28", slot };
+          const text = visitText(v, "Saturday 28 November", A, lang);
+          expect(text.when).toContain("Saturday 28 November");
+          expect(text.when).not.toMatch(/[{}]/);
+          expect(text.until).toHaveLength(4);
+          const sms = visitSms(v, A, lang);
+          expect(sms.length).toBeLessThanOrEqual(160);
+          expect(isGsm7(sms)).toBe(true);
+        }
+    expect(visitSms({ id: 1, block: "B", stress: "rust", date: "2026-10-06", slot: "morning" }, A, "en")).toBe(
+      "JIRANI: officer visits Block B on 06-Oct, morning. Until then: do not spray, keep the 3 leaves, check 10 more trees.",
+    );
   });
 });
 

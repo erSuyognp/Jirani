@@ -1,7 +1,7 @@
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { STRESS_CLASSES } from "../config";
-import { addObservation, allAsks, allObservations, DEFAULT_SETTINGS, getSettings, putAsk, saveSettings, type Settings } from "../db/db";
+import { addObservation, allAsks, allObservations, DEFAULT_SETTINGS, getSettings, getVisits, putAsk, saveSettings, type Settings } from "../db/db";
 import { buildSms } from "../handoff/sms";
 import { loadModel, type ModelMeta, type StressHead } from "../inference/model";
 import { heatmapFor, type Photo, processPhoto } from "../inference/pipeline";
@@ -10,7 +10,7 @@ import type { Answers } from "../logic/answers";
 import { buildCard } from "../logic/card";
 import { rankCauses } from "../logic/causes";
 import { computeTrend } from "../logic/trend";
-import type { Ask, ContextPack, Lang, Observation } from "../logic/types";
+import type { Ask, ContextPack, Lang, Observation, Visit } from "../logic/types";
 import { askImages } from "../sync/ask";
 import { pending, queue, queuedAsks } from "../sync/outbox";
 import { Capture, Questions } from "./Check";
@@ -54,6 +54,7 @@ export default function App() {
   const [result, setResult] = useState<Result | null>(null);
   const [ask, setAsk] = useState(false); // "Ask the officer": send this check's leaf photos (opt-in)
   const [asks, setAsks] = useState<Ask[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [dialog, setDialog] = useState<DialogSpec | null>(null);
   const [toast, setToast] = useState<ToastSpec | null>(null);
   const L: Lang = S.lang;
@@ -102,6 +103,8 @@ export default function App() {
   useEffect(() => {
     if (ready !== "ok" || (screen !== "home" && screen !== "history")) return;
     allObservations().then(setObs);
+    const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+    getVisits().then((v) => setVisits(v.filter((x) => x.date >= today))); // past visits drop off Home
     allAsks().then((all) => {
       setAsks(all);
       // opening History marks officer replies as read (this visit still shows them as new)
@@ -251,6 +254,7 @@ export default function App() {
 
       {screen === "home" && A && (
         <Home lang={L} plot={plot} obs={obs} A={A} queued={queued} replies={asks.filter((a) => a.reply && !a.seen).length}
+          visits={visits} phone={S.phone}
           offlineReady={offlineReady} onCheck={startCheck} go={setScreen} />
       )}
       {screen === "capture" && (
@@ -272,7 +276,7 @@ export default function App() {
       )}
       {screen === "settings" && (
         <SettingsView lang={L} settings={S} plots={plots} update={updateSettings} model={model?.meta ?? null} ask={setDialog} notify={notify}
-          onCleared={() => { setS(DEFAULT_SETTINGS); setQueued(0); setObs([]); setScreen("welcome"); }} />
+          onCleared={() => { setS(DEFAULT_SETTINGS); setQueued(0); setObs([]); setAsks([]); setVisits([]); setScreen("welcome"); }} />
       )}
 
       {isTab && <BottomNav lang={L} tab={screen as Tab} go={(s) => { tap(); setScreen(s); }} queued={queued} />}

@@ -169,3 +169,14 @@ export function fmtDate(iso: string, lang: Lang, withYear = false): string {
     return new Date(iso).toLocaleDateString();
   }
 }
+
+/** A calendar day ("2026-10-06") with its weekday, for visit dates. */
+export function fmtDay(day: string, lang: Lang): string {
+  const opts: Intl.DateTimeFormatOptions = { weekday: "long", day: "numeric", month: "long" };
+  const d = new Date(`${day}T12:00:00`);
+  try {
+    return d.toLocaleDateString(lang === "sw" ? "sw-KE" : "en-GB", opts);
+  } catch {
+    return d.toLocaleDateString();
+  }
+}

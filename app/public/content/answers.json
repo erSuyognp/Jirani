@@ -108,6 +108,16 @@
     "retake": { "en": "The officer could not see the leaves clearly. Take new photos on white paper and send them again.", "sw": "Afisa hakuweza kuona majani vizuri. Piga picha mpya juu ya karatasi nyeupe uzitume tena." }
   },
 
+  "visit": {
+    "scheduled": { "en": "The officer will visit Block {block} on {date}, {slot}.", "sw": "Afisa atatembelea Kitalu {block} {date}, {slot}." },
+    "morning":   { "en": "in the morning", "sw": "asubuhi" },
+    "afternoon": { "en": "in the afternoon", "sw": "mchana" },
+    "until_1":   { "en": "Do not spray anything.", "sw": "Usinyunyizie chochote." },
+    "until_2":   { "en": "Keep the three leaves in a paper bag to show the officer.", "sw": "Weka majani matatu kwenye mfuko wa karatasi umwonyeshe afisa." },
+    "until_3":   { "en": "Mark the trees you took the leaves from.", "sw": "Wekea alama miti uliyochuma majani." },
+    "until_4":   { "en": "Check ten more trees in this block and count how many look the same.", "sw": "Kagua miti kumi zaidi katika kitalu hiki na uhesabu mingapi inafanana." }
+  },
+
   "audio": {
     "note": "Spoken-only variants (pre-recorded clips cannot say the number of days).",
     "trend": {
@@ -134,6 +144,14 @@
     "officer_visit": {
       "en": "JIRANI {date} Block {block}: the officer saw your photos and will come to see this block. Do not spray before then.",
       "sw": "JIRANI {date} Kitalu {block}: afisa ameona picha zako na atakuja kuona kitalu hiki. Usinyunyizie kabla."
+    },
+    "visit": {
+      "en": "JIRANI: officer visits Block {block} on {date}, {slot}. Until then: do not spray, keep the 3 leaves, check 10 more trees.",
+      "sw": "JIRANI: afisa atatembelea Kitalu {block} {date}, {slot}. Hadi hapo: usinyunyizie, weka majani 3, kagua miti 10 zaidi."
+    },
+    "slot": {
+      "morning":   { "en": "morning", "sw": "asubuhi" },
+      "afternoon": { "en": "afternoon", "sw": "mchana" }
     },
     "officer_retake": {
       "en": "JIRANI {date} Block {block}: the officer could not see the leaves. Send new photos on white paper.",

@@ -1,6 +1,7 @@
 {
   "review_status": "DRAFT, not reviewed by an agronomist. Fixed templates only; nothing is generated.",
   "template": "ONDERA COOP: {stress_name} reported on {n} farms near you this week. Check your coffee leaves. Bring 3 leaves to the coop if you see {sign}.",
+  "visit": "ONDERA COOP: the officer will visit your block {block} on {date}, {slot}. Until then: do not spray, keep the 3 leaves, check 10 more trees.",
   "stress": {
     "rust":       { "name": "leaf rust",            "sign": "orange powder" },
     "miner":      { "name": "leaf miner",           "sign": "brown blotches" },

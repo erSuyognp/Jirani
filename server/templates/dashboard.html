@@ -12,7 +12,8 @@
   .live { width:8px; height:8px; border-radius:50%; background:#4ade80; box-shadow:0 0 0 0 rgba(74,222,128,.6); animation:pulse 2s infinite; }
   @keyframes pulse { 70% { box-shadow:0 0 0 7px rgba(74,222,128,0); } 100% { box-shadow:0 0 0 0 rgba(74,222,128,0); } }
   main.wrap { padding-top:20px; padding-bottom:8px; display:flex; flex-direction:column; gap:16px; }
-  .kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; }
+  .kpis { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }
+  .kpi { padding:12px; gap:10px; }
   .kpi { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px 16px; display:flex; gap:12px; align-items:center; }
   .kpi > span { width:44px; height:44px; border-radius:12px; background:var(--brand-tint); color:var(--accent-ink); display:grid; place-items:center; flex:none; }
   .kpi.attn > span { background:var(--warn-bg); color:var(--warn); }
@@ -44,6 +45,15 @@
   .sms { font-size:14px; background:var(--surface); border:1px solid var(--line); border-radius:4px 14px 14px 14px; padding:8px 12px; }
   .alert form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
   .alert input[type=text] { flex:1; min-width:140px; min-height:44px; font:inherit; padding:0 12px; border:1.5px solid var(--line-strong); border-radius:12px; background:var(--surface); }
+  .rank { width:30px; height:30px; border-radius:50%; background:var(--brand); color:#fff; display:inline-grid; place-items:center; font-weight:800; font-variant-numeric:tabular-nums; }
+  .rank.first { background:var(--bad); }
+  .why { display:flex; flex-wrap:wrap; gap:4px; }
+  .visit-form { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .visit-form input[type=date], .visit-form select { min-height:40px; font:inherit; font-size:14.5px; padding:0 8px; border:1.5px solid var(--line-strong); border-radius:10px; background:var(--surface); color:var(--ink); }
+  .visit-form .btn, td form .btn { min-height:40px; padding:4px 12px; font-size:14px; border-radius:10px; }
+  .closed { margin-top:12px; font-size:13.5px; color:var(--muted); }
+  .map-rank { width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff; border:2px solid #fff; display:grid; place-items:center; font:800 12px/1 system-ui,sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.5); }
+  .map-rank.first { background:var(--bad); }
   .consults { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; }
   .consult { border:1px solid var(--line-strong); border-left:5px solid var(--brand-2); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
   .consult.answered { border-left-color:var(--ok); background:#f7f9fb; }
@@ -96,9 +106,10 @@
 <main class="wrap">
   <div class="kpis">
     <div class="kpi"><span>{{ icon("send", 22) }}</span><div><b class="num">{{ n_reports }}</b><small>reports received ({{ n_synthetic }} synthetic)</small></div></div>
-    <div class="kpi"><span>{{ icon("pin", 22) }}</span><div><b class="num">{{ n_reporting }} <span class="muted" style="font-size:16px;font-weight:600">/ {{ n_plots }}</span></b><small>plots have reported</small></div></div>
+    <div class="kpi"><span>{{ icon("users", 22) }}</span><div><b class="num">{{ n_reporting }} <span class="muted" style="font-size:16px;font-weight:600">/ {{ n_plots }}</span></b><small>plots have reported</small></div></div>
     <div class="kpi {{ 'attn' if flagged }}"><span>{{ icon("list", 22) }}</span><div><b class="num">{{ flagged|length }}</b><small>blocks to visit</small></div></div>
     <div class="kpi {{ 'attn' if n_draft }}"><span>{{ icon("bell", 22) }}</span><div><b class="num">{{ n_draft }}</b><small>alert{{ "" if n_draft == 1 else "s" }} waiting for a decision</small></div></div>
+    <div class="kpi {{ 'attn' if n_unscheduled }}"><span>{{ icon("pin", 22) }}</span><div><b class="num">{{ n_unscheduled }}</b><small>visit{{ "" if n_unscheduled == 1 else "s" }} to schedule</small></div></div>
     <div class="kpi {{ 'attn' if n_open }}"><span>{{ icon("camera", 22) }}</span><div><b class="num">{{ n_open }}</b><small>photo request{{ "" if n_open == 1 else "s" }} to answer</small></div></div>
   </div>
 
@@ -154,6 +165,49 @@
     </section>
   </div>
 
+  <section class="panel" id="tickets">
+    <div class="panel-head">
+      <h2>{{ icon("pin", 20) }} Visit queue: where to go first</h2>
+      <p>A ticket opens when a block reports severity high or above, gets worse at low severity or above, or when you promise a visit
+        on a photo request. Order: severity first, then worsening, outbreak area, promised visits and days waiting.
+        The farmer is told the date only after you confirm it.</p>
+    </div>
+    {% if not queue %}
+    <div class="empty"><span>{{ icon("pin", 26) }}</span>No visits waiting. You can also add a block from the visit list below.</div>
+    {% else %}
+    <div class="scroll">
+    <table>
+      <thead><tr><th>#</th><th>Plot</th><th>Problem</th><th>Why this order</th><th>Visit</th></tr></thead>
+      <tbody>
+      {% for t in queue %}
+      <tr>
+        <td><span class="rank {{ 'first' if t.rank == 1 }}">{{ t.rank }}</span></td>
+        <td><b>{{ t.plot_id }}</b> · block {{ t.block }}{% if t.synthetic %} <span class="chip syn">Synthetic</span>{% endif %}</td>
+        <td class="nowrap"><span class="stress"><i class="dot" data-stress="{{ t.stress }}"></i>{{ stress_label[t.stress] }}</span>{% if t.severity is not none %}
+          <div class="small muted"><span class="sev l{{ t.severity }}"><i></i><i></i><i></i><i></i></span>{{ sev[t.severity]|capitalize }}</div>{% endif %}</td>
+        <td><div class="why">{% for w in t.why %}<span class="chip {{ 'bad' if w == 'high severity' else 'warn' if w == 'getting worse' else '' }}">{{ w }}</span>{% endfor %}</div></td>
+        <td>
+          <form method="post" action="/tickets/{{ t.id }}/schedule" class="visit-form">
+            {% if t.status == "scheduled" %}<span class="chip ok">{{ icon("check", 13) }} Farmer told</span>{% else %}<span class="chip warn">Suggested</span>{% endif %}
+            <input type="date" name="visit_date" value="{{ t.visit_date or t.suggest_date }}" required aria-label="Visit date">
+            <select name="slot" aria-label="Time of day">
+              {% for s in ("morning", "afternoon") %}<option value="{{ s }}" {{ "selected" if s == (t.slot or t.suggest_slot) }}>{{ s|capitalize }}</option>{% endfor %}
+            </select>
+            <input type="hidden" name="officer" value="Extension officer">
+            <button class="btn primary">{{ "Change" if t.status == "scheduled" else "Confirm visit" }}</button>
+            <button class="btn outline" formaction="/tickets/{{ t.id }}/done" formnovalidate>Visited</button>
+            <button class="btn outline" formaction="/tickets/{{ t.id }}/cancel" formnovalidate aria-label="Remove from the queue" title="Remove from the queue">{{ icon("x", 16) }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+    {% if recent_done %}<p class="closed">Recently closed: {% for t in recent_done %}{{ t.plot_id }} block {{ t.block }} ({{ "visited" if t.status == "done" else "removed" }}{% if t.visit_date %}, {{ t.visit_date|day }}{% endif %}){{ "" if loop.last else " · " }}{% endfor %}</p>{% endif %}
+  </section>
+
   <section class="panel" id="consults">
     <div class="panel-head">
       <h2>{{ icon("camera", 20) }} Photo requests from farmers</h2>
@@ -200,7 +254,7 @@
     </div>
     <div class="scroll">
     <table>
-      <thead><tr><th>Plot</th><th>Block</th><th>Problem</th><th>Severity</th><th>Trend</th><th>Confidence</th><th>Reported (UTC)</th><th>Source</th></tr></thead>
+      <thead><tr><th>Plot</th><th>Block</th><th>Problem</th><th>Severity</th><th>Trend</th><th>Confidence</th><th>Reported (UTC)</th><th>Source</th><th>Visit</th></tr></thead>
       <tbody>
       {% for r in flagged %}
       <tr>
@@ -210,8 +264,9 @@
         <td class="{{ 'worse' if r.trend == 'worse' else '' }}">{{ r.trend or "-" }}</td>
         <td class="num">{{ "%d%%"|format((r.confidence or 0) * 100) }}</td><td class="nowrap">{{ r.taken_at|ts }}</td>
         <td>{% if r.synthetic %}<span class="chip syn">Synthetic</span>{% else %}<span class="chip ok">From phone</span>{% endif %}</td>
+        <td>{% if r.ticketed %}<span class="chip info">In the queue</span>{% else %}<form method="post" action="/tickets/create"><input type="hidden" name="report_id" value="{{ r.id }}"><button class="btn outline">Add to queue</button></form>{% endif %}</td>
       </tr>
-      {% else %}<tr><td colspan="8"><div class="empty"><span>{{ icon("list", 26) }}</span>No reports yet. They appear here when a farmer presses Send in the app.</div></td></tr>{% endfor %}
+      {% else %}<tr><td colspan="9"><div class="empty"><span>{{ icon("list", 26) }}</span>No reports yet. They appear here when a farmer presses Send in the app.</div></td></tr>{% endfor %}
       </tbody>
     </table>
     </div>
@@ -222,7 +277,7 @@
       <h2>{{ icon("mail", 20) }} Neighbour SMS outbox</h2>
       <span class="muted small">{{ outbox|length }} message{{ "" if outbox|length == 1 else "s" }}{% for k, v in counts.items() %} · {{ "would be sent" if k == "would_send" else k }}: {{ v }}{% endfor %}</span>
     </div>
-    <p class="note">{{ icon("alert", 18) }}<span>Messages are written here only after an officer approves an alert. In this hackathon build they are
+    <p class="note">{{ icon("alert", 18) }}<span>Messages are written here only after an officer approves an alert or confirms a visit. In this hackathon build they are
       <b>not delivered</b>: the status is "would be sent". Delivery to real phones needs carrier registration with an SMS
       provider, which is out of scope.</span></p>
     <div class="scroll">
@@ -232,12 +287,12 @@
       {% for m in outbox %}
       <tr>
         <td class="nowrap">{{ m.created_at|ts }}</td>
-        <td class="nowrap"><b>{{ m.plot_id }}</b><div class="muted small">alert #{{ m.alert_id }}</div></td>
+        <td class="nowrap"><b>{{ m.plot_id }}</b><div class="muted small">{% if m.ticket_id %}visit ticket #{{ m.ticket_id }}{% else %}alert #{{ m.alert_id }}{% endif %}</div></td>
         <td class="msg">{{ m.body }}</td>
         <td class="nowrap">{% if m.status == "would_send" %}<span class="chip warn">would be sent</span>{% else %}<span class="chip">{{ m.status }}</span>{% endif %}
           {% if m.error %}<div class="muted small">{{ m.error }}</div>{% endif %}</td>
       </tr>
-      {% else %}<tr><td colspan="4"><div class="empty"><span>{{ icon("mail", 26) }}</span>Empty. Approving an alert fills the outbox.</div></td></tr>{% endfor %}
+      {% else %}<tr><td colspan="4"><div class="empty"><span>{{ icon("mail", 26) }}</span>Empty. Approving an alert or confirming a visit fills the outbox.</div></td></tr>{% endfor %}
       </tbody>
     </table>
     </div>
@@ -256,7 +311,7 @@
   const COL = { rust: "#e8590c", miner: "#7048e8", phoma: "#8a5a2b", cercospora: "#212529", healthy: "#2b8a3e", not_sure: "#adb5bd" };
   document.querySelectorAll(".dot[data-stress]").forEach((d) => { d.style.background = COL[d.dataset.stress]; });
   document.getElementById("legend").innerHTML = Object.entries(COL).map(([k, v]) => `<span><i class="dot" style="background:${v}"></i>${LABEL[k]}</span>`).join("")
-    + '<span><i class="dot" style="background:#fff"></i>No report yet</span><span><i class="ring"></i>Alert area</span>';
+    + '<span><i class="dot" style="background:#fff"></i>No report yet</span><span><i class="ring"></i>Alert area</span><span><i class="map-rank" style="display:inline-grid;width:18px;height:18px;font-size:10px">1</i>Visit order</span>';
   const store = { get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch { /* ignore */ } } };
   try {
     const map = L.map("map", { scrollWheelZoom: false });
@@ -289,6 +344,8 @@
         ? `<b>${p.id}</b> · block ${p.block}<br>${LABEL[p.stress]}${p.severity ? " · " + SEV[p.severity] : ""}${p.trend ? " · " + p.trend : ""}<br><span style="color:#55606e">${p.when} UTC${p.synthetic ? " · synthetic report" : " · from phone"}</span>`
         : `<b>${p.id}</b><br><span style="color:#55606e">No report yet</span>`);
       m.bindTooltip(p.id);
+      // visit queue position: where the officer goes first
+      if (p.rank) L.marker([p.lat, p.lon], { interactive: false, icon: L.divIcon({ className: "", html: `<span class="map-rank ${p.rank === 1 ? "first" : ""}">${p.rank}</span>`, iconSize: [22, 22], iconAnchor: [-4, 26] }) }).addTo(map);
       pts.push([p.lat, p.lon]);
     }
     const saved = JSON.parse(store.get("jirani-view") || "null");
