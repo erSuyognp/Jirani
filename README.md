@@ -3,7 +3,7 @@
 says what is likely wrong (or "not sure, ask a person"), hands the result to a basic phone, and lets the cooperative
 warn neighbouring farms.
 
-**Live:** farmer app <https://jirani-eosin.vercel.app> · project page <https://jirani-coop.onrender.com> · cooperative dashboard <https://jirani-coop.onrender.com/dashboard> (demo data is synthetic)
+**Live:** farmer app <https://jirani-eosin.vercel.app> · project page <https://jirani-coop.onrender.com> · simulation of the whole flow <https://jirani-coop.onrender.com/simulation> · cooperative dashboard <https://jirani-coop.onrender.com/dashboard> (demo data is synthetic)
 
 Hack-Nation 7th Global AI Hackathon, Challenge 04 *Small AI for Development* (World Bank Youth Summit), Agriculture.
 "Jirani" means "neighbour" in Kiswahili.
@@ -133,9 +133,31 @@ python -m venv .venv
 .venv/Scripts/activate                              # Windows; on macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements-dev.txt
 uvicorn main:app --app-dir server --port 8000      # landing page http://localhost:8000, dashboard /dashboard
-python -m pytest server -q                          # 23 tests: outbreak rule, approval, privacy, photo requests, visit tickets, SMS allowlist, CORS, pages
+python -m pytest server -q                          # 24 tests: outbreak rule, approval, privacy, photo requests, visit tickets, simulation, SMS allowlist, CORS, pages
 python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbour rust reports (--all adds OND-0017)
 ```
+
+### Simulation (the whole flow on one page)
+`/simulation` on the server shows the real farmer app (left, in a phone frame) next to the live dashboard (right) and
+plays the story in 15 steps: a refused photo, three leaves, the questions, the result card in English and Kiswahili,
+the SMS handoff, "Ask the officer", Sync, neighbour reports, the draft alert and its approval, the officer's reply,
+the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play all**, or go step by step.
+
+- **Real:** the app, the model (it runs in the browser tab on the sample photos), the server rules and the dashboard.
+- **Simulated:** the farmer's taps, the photos (six held-out BRACOL test leaves and one non-leaf image in
+  `app/public/sim/`), the two neighbour reports and the officer's clicks. Reports sent by the simulated phone are
+  flagged synthetic.
+- The app runs in simulation mode (`?sim=1`) with its own database (`jirani-sim`), so it never touches a real
+  phone's data. **Playing clears the demo data on the server first** (reports, alerts, outbox, photo requests,
+  tickets), and anyone with the link can press Play.
+- Locally: start the server and the app (`npm run dev`), then open <http://localhost:8000/simulation>. The page embeds
+  the app from `APP_URL` (default `http://localhost:5173`), which must be in the server's `APP_ORIGIN`.
+- To record it as a video (Microsoft Edge headless, about 2.5 minutes, written to `recordings/`):
+  ```bash
+  npm install --no-save --prefix scripts playwright-core
+  npx --prefix scripts playwright-core install ffmpeg
+  node scripts/record_simulation.cjs https://<your-service>.onrender.com/simulation
+  ```
 
 ### Reproduce the dataset and the model
 1. Download BRACOL from Mendeley Data (CC BY 4.0, DOI 10.17632/yy2k5y8mxg.1) into `ml/data/bracol/` and extract it:

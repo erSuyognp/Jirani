@@ -4,6 +4,7 @@
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import { allAsks, allObservations, enqueue, getVisits, markSynced, outbox, type Packet, putAsk, saveVisits } from "../db/db";
 import type { Ask, Observation, OfficerReply, Visit } from "../logic/types";
+import { SIM } from "../sim";
 
 export function packetFor(o: Observation): Packet {
   return {
@@ -16,6 +17,7 @@ export function packetFor(o: Observation): Packet {
     confidence: Math.round(o.confidence * 1000) / 1000,
     takenAt: o.takenAt,
     modelVersion: o.modelVersion,
+    ...(SIM ? { synthetic: true } : {}), // simulation reports show as SYNTHETIC on the dashboard
   };
 }
 

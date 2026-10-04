@@ -2,8 +2,10 @@
 // Everything stays on this phone until the user taps Send.
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
 import type { Ask, Lang, Observation, Visit } from "../logic/types";
+import { SIM } from "../sim";
 
 export interface Packet {
+  synthetic?: boolean;  // set only in simulation mode
   id: string;
   plotId: string;
   block: string;
@@ -33,7 +35,7 @@ interface JiraniDB extends DBSchema {
 
 let dbp: Promise<IDBPDatabase<JiraniDB>> | null = null;
 function db() {
-  dbp ??= openDB<JiraniDB>("jirani", 2, {
+  dbp ??= openDB<JiraniDB>(SIM ? "jirani-sim" : "jirani", 2, { // the simulation never touches real data
     upgrade(d, oldVersion) {
       if (oldVersion < 1) {
         const o = d.createObjectStore("observations", { keyPath: "id" });

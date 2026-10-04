@@ -14,3 +14,4 @@ scripts/cache/
 app/public/ort/
 app/dev-samples/
 scripts/context_build.log
+recordings/

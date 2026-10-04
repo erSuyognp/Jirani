@@ -184,6 +184,16 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Not checked: on the phone against the live server (needs a push first); the "Visited" and remove buttons in a browser (covered by tests only).
 - Limits: the visit steps are draft and not reviewed by an agronomist; the phone learns about a visit only when the farmer presses Sync; anyone who knows a plot id can read its confirmed visit dates; one officer and one capacity for the whole cooperative.
 
+### Simulation page and recording (2026-10-03)
+- `/simulation` on the server: the real app in a phone frame (iframe, `?sim=1`) beside the live dashboard, with 15 steps (Play all / Next step). Linked from the landing page and the dashboard.
+- App simulation mode (`app/src/sim.ts`, `app/src/ui/simDriver.ts`): only when the URL has `?sim`; separate IndexedDB (`jirani-sim`); preloads one labelled demo check; receives step names by `postMessage` and taps through the real UI with a visible marker; sample photos replace the camera; reports are flagged `synthetic`. The model really runs on the sample photos.
+- Server helpers: `POST /simulation/reset` (clears reports, alerts, outbox, photo requests, tickets), `POST /simulation/neighbours` (two synthetic neighbour reports), `GET /simulation/state` (ids for the simulated officer clicks). The officer steps use the normal dashboard endpoints.
+- Sample photos: six held-out BRACOL test leaves and one non-leaf image (`app/public/sim/`, 96 KB, not precached by the service worker). The three rust leaves give "Leaf rust, High, worse than 14 days ago"; the three mixed leaves give "Not sure".
+- `scripts/record_simulation.cjs` records the page with Edge headless (playwright-core, installed with `--no-save`).
+- Checked: full run in headless Edge against the local server and dev app, all 15 steps, about 2 min 15 s; frames checked at each step. Recording: `recordings/jirani-simulation.webm` (1920x1080, 2:19, VP8; folder is gitignored).
+- Not checked: the simulation on the live sites (needs a push; Vercel must serve the new app build), other browsers than Edge/Chromium, the page on a phone-width screen.
+- Limits: playing the simulation wipes the server's demo data and needs no login; in Safari and Firefox the embedded app's storage rules may differ; a `.webm` may need converting to `.mp4` for some video editors.
+
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
   1. Open https://jirani-eosin.vercel.app online and wait for "Ready to work without internet".

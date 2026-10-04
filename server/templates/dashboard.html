@@ -2,6 +2,7 @@
 {% block title %}Jirani · Cooperative dashboard{% endblock %}
 {% block head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
 {% block style %}
+  .panel { scroll-margin-top:12px; }
   .synthetic { background:var(--syn); color:#fff; padding:7px 24px; font-size:14px; font-weight:600; text-align:center; }
   .topbar { background:var(--brand); color:#fff; }
   .topbar .wrap { display:flex; align-items:center; gap:14px 20px; flex-wrap:wrap; padding-top:12px; padding-bottom:12px; }
@@ -98,6 +99,7 @@
     <div class="status">
       <span>{{ icon("mail", 15) }} SMS: {{ "mock, no real SMS is sent" if sms_mode == "mock" else sms_mode }}</span>
       <span><i class="live"></i> Refreshes every 15 s</span>
+      <a href="/simulation">Simulation</a>
       <a href="/">About Jirani {{ icon("arrow", 15) }}</a>
     </div>
   </div>
@@ -114,7 +116,7 @@
   </div>
 
   <div class="cols">
-    <section class="panel">
+    <section class="panel" id="map-panel">
       <div class="panel-head">
         <h2>{{ icon("map", 20) }} Plots by latest report</h2>
         <div class="seg" id="layers"><button data-layer="sat">Satellite</button><button data-layer="osm">Map</button></div>
@@ -124,7 +126,7 @@
       <p class="area-note">{{ icon("pin", 15) }} {{ area }}. Plot points are synthetic and random within about 3 km; they are not real farms.</p>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="alerts">
       <div class="panel-head">
         <h2>{{ icon("bell", 20) }} Outbreak alerts</h2>
         <p>A person decides. Nothing is sent to neighbours until an officer approves.</p>
@@ -272,7 +274,7 @@
     </div>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="outbox">
     <div class="panel-head">
       <h2>{{ icon("mail", 20) }} Neighbour SMS outbox</h2>
       <span class="muted small">{{ outbox|length }} message{{ "" if outbox|length == 1 else "s" }}{% for k, v in counts.items() %} · {{ "would be sent" if k == "would_send" else k }}: {{ v }}{% endfor %}</span>

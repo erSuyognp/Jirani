@@ -235,6 +235,23 @@ def test_visit_sms_fits_one_segment():
     assert tickets.nice_date("2026-10-06") == "Tue 6 Oct"
 
 
+def test_simulation_page_and_helpers(client):
+    c, main = client
+    page = c.get("/simulation")
+    assert page.status_code == 200 and "Simulated:" in page.text and "?sim=1" in page.text
+    c.post("/api/reports", json={**pkt(1, "OND-0017", sev=3), "synthetic": True})
+    r = c.post("/simulation/neighbours").json()
+    assert r["accepted"] == 2 and r["alerts"] and r["alerts"][0]["change"] == "created"
+    assert main.con.execute("SELECT COUNT(*) FROM reports WHERE synthetic = 1").fetchone()[0] == 3
+    st = c.get("/simulation/state").json()
+    assert st["reports"] == 3 and st["draft_alert"] and st["open_consult"] is None
+    assert {t["plot_id"] for t in st["tickets"]} >= {"OND-0017"} and st["tickets"][0]["suggest_date"]
+    assert c.post("/simulation/reset").json() == {"ok": True}
+    st = c.get("/simulation/state").json()
+    assert st == {"reports": 0, "draft_alert": None, "open_consult": None, "tickets": []}
+    assert len(c.get("/api/plots").json()["plots"]) == 40     # the registry is kept
+
+
 def test_all_alert_templates_fit_one_sms():
     import main as m
     for s in m.TEMPLATES["stress"]:

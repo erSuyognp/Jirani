@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Jirani · Simulation{% endblock %}
+{% block style %}
+  body { background:var(--bg); }
+  .topbar { background:var(--brand); color:#fff; }
+  .topbar .wrap { max-width:none; display:flex; align-items:center; gap:14px 20px; flex-wrap:wrap; padding-top:10px; padding-bottom:10px; }
+  .topbar .links { margin-left:auto; display:flex; gap:18px; font-size:14.5px; }
+  .topbar .links a { color:#fff; font-weight:600; text-decoration:none; }
+  .tag { font-weight:600; padding-left:20px; border-left:1px solid rgba(255,255,255,.25); }
+  .what { background:var(--syn); color:#fff; padding:7px 24px; font-size:13.5px; font-weight:600; text-align:center; }
+  .stage { display:grid; grid-template-columns:330px 410px minmax(0,1fr); gap:16px; padding:16px 20px 20px; align-items:start; }
+  .panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; min-width:0; }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .controls .btn { min-height:42px; padding:6px 14px; font-size:15px; }
+  .steps { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; max-height:calc(100vh - 250px); overflow:auto; }
+  .steps li { display:flex; gap:10px; padding:7px 8px; border-radius:10px; font-size:14.5px; color:var(--muted); cursor:pointer; }
+  .steps li:hover { background:#f2f5f8; }
+  .steps li b { display:block; color:var(--ink-2); font-weight:600; }
+  .steps .n { flex:none; width:24px; height:24px; border-radius:50%; background:#e4eaf0; color:var(--muted); display:grid; place-items:center; font-size:12.5px; font-weight:800; }
+  .steps li.on { background:var(--brand-tint); }
+  .steps li.on b { color:var(--brand); font-weight:800; }
+  .steps li.on .n { background:var(--brand); color:#fff; }
+  .steps li.done .n { background:var(--ok); color:#fff; }
+  .steps li.fail .n { background:var(--bad); color:#fff; }
+  .steps small { display:none; font-size:13px; line-height:1.4; }
+  .steps li.on small { display:block; margin-top:2px; color:var(--ink-2); }
+  .cap { display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .cap .chip { text-transform:none; letter-spacing:0; }
+  .phone { position:relative; width:100%; height:calc(100vh - 215px); min-height:560px; border:9px solid #0b1728; border-radius:36px; overflow:hidden; background:var(--brand); box-shadow:0 10px 30px rgba(8,20,36,.25); }
+  .phone iframe { width:100%; height:100%; border:0; display:block; background:var(--brand); }
+  .dash { position:relative; height:calc(100vh - 215px); min-height:560px; border:1px solid var(--line-strong); border-radius:12px; overflow:hidden; background:#fff; }
+  .dash iframe { width:125%; height:125%; border:0; transform:scale(.8); transform-origin:0 0; }
+  .veil { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center; background:var(--brand); color:#cfe0ee; font-size:15px; }
+  .veil.hide { display:none; }
+  .spinner { width:32px; height:32px; border:4px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .now { margin:0 20px; padding:12px 18px; border-radius:14px; background:var(--surface); border:1px solid var(--line); display:flex; gap:14px; align-items:center; }
+  .now .n { flex:none; width:38px; height:38px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; font-weight:800; }
+  .now h2 { font-size:19px; line-height:1.25; }
+  .now p { font-size:14.5px; color:var(--ink-2); }
+  .err { color:var(--bad); font-size:13px; }
+  @media (max-width:1180px) { .stage { grid-template-columns:minmax(0,1fr); } .phone { max-width:410px; margin:0 auto; height:760px; } .dash { height:760px; } .steps { max-height:none; } }
+  @media (prefers-reduced-motion:reduce) { .spinner { animation:none; } }
+{% endblock %}
+{% block body %}
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">{{ logo(28) }} Jirani</a>
+  <span class="tag">Simulation: the whole flow in one screen</span>
+  <div class="links"><a href="/dashboard">Dashboard</a><a href="/">About Jirani</a></div>
+</div></header>
+<div class="what">Simulated: the farmer's taps, the sample leaf photos, the neighbours' reports and the officer's clicks. Real: the app, the model running in this browser tab, the server rules and the dashboard.</div>
+
+<div class="now" style="margin-top:14px">
+  <span class="n" id="now-n">{{ icon("leaf", 20) }}</span>
+  <div><h2 id="now-t">Press Play to run the story from the first leaf to the officer's visit</h2>
+    <p id="now-d">Left: the real farmer app in simulation mode, with its own separate storage. Right: this server's live dashboard. Playing clears the demo data on this server first.</p></div>
+</div>
+
+<div class="stage">
+  <section class="panel">
+    <div class="controls">
+      <button class="btn primary" id="play">{{ icon("send") }} Play all</button>
+      <button class="btn outline" id="next">Next step</button>
+      <button class="btn outline" id="stop" disabled>Pause</button>
+    </div>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <section>
+    <div class="cap">{{ icon("phone", 16) }} Farmer's phone <span class="chip syn">simulated taps</span></div>
+    <div class="phone">
+      <iframe id="phone" title="Jirani farmer app in simulation mode" allow="autoplay"></iframe>
+      <div class="veil" id="veil"><div class="spinner"></div>Loading the app and the leaf model…<span class="err" id="veil-err"></span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cap">{{ icon("map", 16) }} Cooperative dashboard <span class="chip info">live, this server</span></div>
+    <div class="dash"><iframe id="dash" title="Cooperative dashboard" src="/dashboard"></iframe></div>
+  </section>
+</div>
+
+<script>
+  const APP = {{ app_url|tojson }};
+  const OFFICER = "Extension officer (simulated)";
+  const DEMO_PLOT = "OND-0017";
+  const phoneFrame = document.getElementById("phone"), dashFrame = document.getElementById("dash");
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ---- the phone: step names are sent to the app, which taps through its own screens ----
+  let ready, seq = 0;
+  const waiting = new Map();
+  const appReady = new Promise((r) => { ready = r; });
+  window.addEventListener("message", (e) => {
+    if (e.source !== phoneFrame.contentWindow || !e.data) return;
+    if (e.data.jirani === "sim-ready") { document.getElementById("veil").classList.add("hide"); ready(); }
+    if (e.data.jirani === "sim-done" && waiting.has(e.data.id)) {
+      const { resolve, reject } = waiting.get(e.data.id);
+      waiting.delete(e.data.id);
+      e.data.ok ? resolve() : reject(new Error(e.data.error || "the phone step failed"));
+    }
+  });
+  phoneFrame.src = `${APP.replace(/\/$/, "")}/?sim=1&server=${encodeURIComponent(location.origin)}`;
+  setTimeout(() => { if (waiting.size === 0 && !document.getElementById("veil").classList.contains("hide")) document.getElementById("veil-err").textContent = `Still waiting for the app at ${APP}. It must be deployed with simulation mode.`; }, 25000);
+
+  async function phone(step) {
+    await appReady;
+    const id = ++seq;
+    const done = new Promise((resolve, reject) => {
+      waiting.set(id, { resolve, reject });
+      setTimeout(() => { if (waiting.delete(id)) reject(new Error("the phone did not answer in time")); }, 120000);
+    });
+    phoneFrame.contentWindow.postMessage({ jirani: "sim", step, id }, new URL(APP).origin);
+    return done;
+  }
+
+  // ---- the server and the dashboard ----
+  const post = (url, form) => fetch(url, { method: "POST", redirect: "manual", body: form ? new URLSearchParams(form) : undefined });
+  const state = async () => (await fetch("/simulation/state")).json();
+  async function dash(anchor, ms = 4200) {
+    dashFrame.src = `/dashboard?sim=${Date.now()}#${anchor}`;
+    await sleep(ms);
+  }
+
+  const STEPS = [
+    { t: "Start from clean demo data", d: "The server's demo data and the simulated phone are cleared. One earlier check of Block B (very low rust, 14 days ago) is preloaded on the phone as labelled demo data, so there is a trend to compare.",
+      run: async () => { await post("/simulation/reset"); await phone("reset"); await dash("map-panel", 2500); } },
+    { t: "A bad photo is refused", d: "The quality gate checks blur, light and whether a leaf is in the picture, before the model runs. This image has no leaf, so it is not used.",
+      run: () => phone("bad_photo") },
+    { t: "Three leaves on white paper", d: "Three sample leaves from the held-out test set stand in for the camera. Each one is cropped and run through the 1 MB model inside this browser tab, with no server involved.",
+      run: () => phone("capture") },
+    { t: "Three tap-only questions", d: "Which block, what changed, and whether anyone sprayed. No typing.",
+      run: () => phone("questions") },
+    { t: "The result card, offline", d: "Leaf rust, with confidence, severity and trend against the earlier check, a heatmap of where the model looked, one action, one thing not to do, and the likely causes of the yield drop.",
+      run: () => phone("result") },
+    { t: "The same card in Kiswahili", d: "Every sentence comes from a fixed list in both languages. Nothing is generated.",
+      run: () => phone("kiswahili") },
+    { t: "Handoff to a basic phone", d: "One SMS of 160 characters or fewer, which the farmer sends herself, and audio built from pre-recorded Kiswahili clips.",
+      run: () => phone("handoff") },
+    { t: "Ask the officer", d: "The farmer chooses to send the three leaf photos for advice. This is off by default; photos stay on the phone otherwise.",
+      run: () => phone("ask") },
+    { t: "Sync: the farmer presses Send", d: "The screen shows exactly what goes: plot, block and result, plus the photos she chose to send. On the dashboard the report, the photo request and a visit ticket appear.",
+      run: async () => { await phone("sync"); await dash("consults"); await dash("tickets", 3500); } },
+    { t: "Neighbours report the same disease", d: "Two synthetic reports arrive from plots within 2 km. Three plots with the same problem in 14 days make a draft outbreak alert.",
+      run: async () => { await post("/simulation/neighbours"); await dash("map-panel"); await dash("alerts", 3800); } },
+    { t: "The officer approves the alert", d: "Alerts are never sent automatically. After approval, messages to about nine neighbouring plots are written to the outbox as \"would be sent\" (mock SMS).",
+      run: async () => { const s = await state(); if (s.draft_alert) await post(`/alerts/${s.draft_alert}/approve`, { officer: OFFICER }); await dash("outbox"); } },
+    { t: "The officer answers the photo request", d: "The officer looks at the three photos and replies from a fixed list: here, leaf rust, high.",
+      run: async () => { await dash("consults", 3200); const s = await state(); if (s.open_consult) await post(`/consults/${s.open_consult}/reply`, { reply: "rust", band: "high", officer: OFFICER }); await dash("consults", 3200); } },
+    { t: "Visit queue: where to go first", d: "Tickets are ranked by severity, worsening, outbreak area and waiting time, and numbered on the map. The officer confirms a date for the farmer's block.",
+      run: async () => { await dash("tickets", 3800); const s = await state(); const t = s.tickets.find((x) => x.plot_id === DEMO_PLOT && x.status === "open");
+        if (t) await post(`/tickets/${t.id}/schedule`, { visit_date: t.suggest_date, slot: t.suggest_slot, officer: OFFICER }); await dash("tickets", 3800); } },
+    { t: "The farmer hears back", d: "At her next sync the phone shows when the officer will come, what to do until then, and the officer's reply under the check.",
+      run: async () => { await phone("news"); await phone("reply"); } },
+    { t: "When it cannot tell, it says so", d: "Three leaves that disagree give \"Not sure. Ask a person.\" with no diagnosis and \"Do not spray\". The farmer does not save this one.",
+      run: () => phone("refusal") },
+  ];
+
+  const list = document.getElementById("steps");
+  STEPS.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="n">${i + 1}</span><span><b></b><small></small></span>`;
+    li.querySelector("b").textContent = s.t;
+    li.querySelector("small").textContent = s.d;
+    li.addEventListener("click", () => { if (!busy) { at = i; failNote = ""; mark(); } });
+    list.appendChild(li);
+  });
+  let at = 0, busy = false, playing = false, failNote = "";
+  const btn = { play: document.getElementById("play"), next: document.getElementById("next"), stop: document.getElementById("stop") };
+  function mark() {
+    [...list.children].forEach((li, i) => li.classList.toggle("on", i === at));
+    const s = STEPS[at];
+    if (s) {
+      document.getElementById("now-n").textContent = at + 1;
+      document.getElementById("now-t").textContent = s.t;
+      document.getElementById("now-d").textContent = failNote || s.d;
+      list.children[at].scrollIntoView({ block: "nearest" });
+    }
+    btn.play.disabled = btn.next.disabled = busy || at >= STEPS.length;
+    btn.stop.disabled = !playing;
+  }
+  async function runStep() {
+    if (busy || at >= STEPS.length) return false;
+    busy = true;
+    failNote = "";
+    mark();
+    const li = list.children[at];
+    li.classList.remove("done", "fail");
+    let ok = true;
+    try { await STEPS[at].run(); li.classList.add("done"); }
+    catch (e) { ok = false; failNote = `This step did not finish: ${e.message}`; li.classList.add("fail"); }
+    busy = false;
+    if (ok) at++;
+    if (at >= STEPS.length) {
+      [...list.children].forEach((x) => x.classList.remove("on"));
+      document.getElementById("now-n").textContent = "✓";
+      document.getElementById("now-t").textContent = "End of the simulation";
+      document.getElementById("now-d").textContent = "From three leaves to a diagnosis, a message for the basic phone, a neighbour alert, an answer from the officer and a planned visit. Press Play to run it again.";
+      at = 0; playing = false; document.body.dataset.done = "1";
+      btn.play.disabled = btn.next.disabled = false; btn.stop.disabled = true;
+      return false;
+    }
+    mark();
+    return ok;
+  }
+  btn.next.addEventListener("click", () => { runStep(); });
+  btn.play.addEventListener("click", async () => {
+    playing = true; delete document.body.dataset.done;
+    while (playing && await runStep()) await sleep(900);
+    playing = false;
+    if (!document.body.dataset.done) mark();
+  });
+  btn.stop.addEventListener("click", () => { playing = false; btn.stop.disabled = true; });
+</script>
+{% endblock %}

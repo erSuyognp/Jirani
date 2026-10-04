@@ -6,8 +6,9 @@ All demo data (registry, simulated reports) is SYNTHETIC. No LLM calls anywhere.
 import base64
 import json
 import os
+import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Body, FastAPI, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -281,6 +282,52 @@ def landing(request: Request):
         "app_url": config.APP_URL, "repo_url": config.REPO_URL, "area": SEED.get("area", ""),
         "n_plots": con.execute("SELECT COUNT(*) FROM plots").fetchone()[0],
     })
+
+
+# ---- simulation: the whole flow on one page (templates/simulation.html) -------------------------------------
+SIM_PLOT = "OND-0017"
+
+
+@app.get("/simulation", response_class=HTMLResponse)
+def simulation(request: Request):
+    return templates.TemplateResponse(request, "simulation.html", {"app_url": config.APP_URL})
+
+
+@app.post("/simulation/reset")
+def simulation_reset():
+    """Clear the demo data (reports, alerts, outbox, photo requests, tickets). The synthetic registry stays."""
+    for table in ("reports", "alerts", "sms_outbox", "consults", "tickets"):
+        con.execute(f"DELETE FROM {table}")
+    con.commit()
+    return {"ok": True}
+
+
+@app.post("/simulation/neighbours")
+def simulation_neighbours():
+    """SYNTHETIC reports from the two plots nearest the demo plot (same idea as scripts/simulate_outbreak.py)."""
+    plots_ = [dict(r) for r in con.execute("SELECT plot_id, lat, lon, blocks_json FROM plots")]
+    demo = next(p for p in plots_ if p["plot_id"] == SIM_PLOT)
+    near = sorted((p for p in plots_ if p["plot_id"] != SIM_PLOT),
+                  key=lambda p: outbreak.haversine_km(demo["lat"], demo["lon"], p["lat"], p["lon"]))[:2]
+    now = datetime.now(timezone.utc)
+    return reports([{"id": f"sim-{uuid.uuid4()}", "plotId": p["plot_id"], "block": json.loads(p["blocks_json"])[0],
+                     "stress": "rust", "severity": 2 + k, "trend": "worse", "confidence": 0.9,
+                     "takenAt": (now - timedelta(days=2 + k)).isoformat().replace("+00:00", "Z"),
+                     "modelVersion": "SYNTHETIC", "synthetic": True} for k, p in enumerate(near)])
+
+
+@app.get("/simulation/state")
+def simulation_state():
+    """Ids the simulation page needs to press the officer's buttons."""
+    def one(sql):
+        row = con.execute(sql).fetchone()
+        return row[0] if row else None
+
+    return {"reports": one("SELECT COUNT(*) FROM reports"),
+            "draft_alert": one("SELECT id FROM alerts WHERE status = 'draft' ORDER BY id DESC LIMIT 1"),
+            "open_consult": one("SELECT id FROM consults WHERE status = 'open' ORDER BY created_at DESC LIMIT 1"),
+            "tickets": [{k: t.get(k) for k in ("id", "plot_id", "block", "rank", "status", "suggest_date", "suggest_slot")}
+                        for t in tickets.ranked(con)]}
 
 
 @app.get("/dashboard", response_class=HTMLResponse)

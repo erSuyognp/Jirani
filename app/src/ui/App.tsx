@@ -1,7 +1,8 @@
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { STRESS_CLASSES } from "../config";
-import { addObservation, allAsks, allObservations, DEFAULT_SETTINGS, getSettings, getVisits, putAsk, saveSettings, type Settings } from "../db/db";
+import { addObservation, allAsks, allObservations, clearAll, DEFAULT_SETTINGS, getSettings, getVisits, putAsk, saveSettings, type Settings } from "../db/db";
+import { stopAudio } from "../handoff/audio";
 import { buildSms } from "../handoff/sms";
 import { loadModel, type ModelMeta, type StressHead } from "../inference/model";
 import { heatmapFor, type Photo, processPhoto } from "../inference/pipeline";
@@ -11,6 +12,7 @@ import { buildCard } from "../logic/card";
 import { rankCauses } from "../logic/causes";
 import { computeTrend } from "../logic/trend";
 import type { Ask, ContextPack, Lang, Observation, Visit } from "../logic/types";
+import { SIM, SIM_PLOT, SIM_SERVER } from "../sim";
 import { askImages } from "../sync/ask";
 import { pending, queue, queuedAsks } from "../sync/outbox";
 import { Capture, Questions } from "./Check";
@@ -21,6 +23,7 @@ import { buzz, isNative, leaveApp, onBackButton, styleSystemBars, tap } from "./
 import { Setup, Welcome } from "./Onboarding";
 import { ResultCard } from "./Result";
 import { SettingsView } from "./Settings";
+import { simHooks, startSim } from "./simDriver";
 import { Sync } from "./Sync";
 import type { CheckAnswers, Plot, Result } from "./types";
 import { AppBar, BottomNav, Dialog, type DialogSpec, Logo, type Tab, Toast, type ToastSpec } from "./widgets";
@@ -32,6 +35,8 @@ const TITLE: Partial<Record<Screen, string>> = {
   setup: "setup_title", history: "history", sync: "sync", settings: "settings",
   capture: "step_photos", questions: "questions_title", card: "card_title",
 };
+
+let simBoot: Promise<void> | null = null; // simulation start-up runs once, even when React mounts twice in dev
 
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
@@ -68,15 +73,18 @@ export default function App() {
     (async () => {
       try {
         await loadStrings(BASE);
+        const plotList: Plot[] = (await (await fetch(`${BASE}content/plots.json`)).json()).plots;
+        if (SIM) await (simBoot ??= simReset(plotList)); // simulation: start from a known state every time
         const s = await getSettings();
         setS(s);
         setA(await (await fetch(`${BASE}content/answers.json`)).json());
-        setPlots((await (await fetch(`${BASE}content/plots.json`)).json()).plots);
+        setPlots(plotList);
         setModel(await loadModel());
         await refreshQueued();
         if (!s.plotId) setScreen("welcome");
         setReady("ok");
         styleSystemBars();
+        startSim();
       } catch (e) {
         setErr(String(e));
         setReady("error");
@@ -111,6 +119,34 @@ export default function App() {
       if (screen === "history") all.filter((a) => a.reply && !a.seen).forEach((a) => putAsk({ ...a, seen: true }));
     });
   }, [ready, screen]);
+
+  /**
+   * Simulation mode only: wipe the simulation database and set up the demo plot with one earlier check
+   * (labelled demo data), so the new check has a trend to compare against.
+   */
+  async function simReset(plotList: Plot[]) {
+    stopAudio();
+    await clearAll();
+    const s: Settings = {
+      ...DEFAULT_SETTINGS, lang: "en", plotId: SIM_PLOT, blocks: plotList.find((p) => p.plot_id === SIM_PLOT)?.blocks ?? ["A", "B", "C"],
+      phone: "+254 700 000000", serverUrl: SIM_SERVER ?? DEFAULT_SETTINGS.serverUrl,
+    };
+    await saveSettings(s);
+    await addObservation({
+      id: uuid(), plotId: SIM_PLOT, block: "B", takenAt: new Date(Date.now() - 14 * 86_400_000).toISOString(),
+      stress: "rust", severity: 1, confidence: 0.9, trend: "first",
+      answers: { changed: "nothing_new", sprayed: "no" }, modelVersion: "demo", synced: true, demo: true,
+    });
+    setS(s);
+    setObs(await allObservations());
+    setAsks([]); setVisits([]); setQueued(0); setPhotos([]); setResult(null); setAsk(false); setDialog(null);
+    setScreen("home");
+  }
+  useEffect(() => {
+    if (!SIM) return;
+    simHooks.addPhoto = addPhoto;
+    simHooks.reset = () => simReset(plots);
+  });
 
   /** Sync badge: reports waiting, or photo requests waiting when their reports already went. */
   async function refreshQueued() {
