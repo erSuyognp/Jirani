@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Jirani intro animation</title>
+<!--
+  The animated opening for the demo video: the problem and what Jirani does, in seven shots (23 s, 1920x1080).
+  Open this file in a browser to preview it (space: play/pause, the slider scrubs).
+  Render it to recordings/jirani-intro.mp4 with:  node scripts/render_intro.cjs
+  ?captions=0 leaves the captions out (to add them in a video editor instead).
+  Every frame is a pure function of the time, so the render is identical on every run.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; object-fit: contain; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 8px 14px;
+         background: rgba(0, 0, 0, .6); color: #fff; font: 14px "Segoe UI", system-ui, sans-serif; }
+  #bar input { flex: 1; }
+  #bar button { font: inherit; padding: 4px 12px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<div id="bar" hidden><button id="toggle">Pause</button><input id="seek" type="range" min="0" step="0.01" value="0"><span id="clock"></span></div>
+<script>
+const W = 1920, H = 1080, FPS = 30, DURATION = 23;
+const params = new URLSearchParams(location.search);
+const SHOW_CAPTIONS = params.get("captions") !== "0";
+const FONT = '"Segoe UI", system-ui, sans-serif';
+const BRAND = "#002244", BLUE = "#009fda", SKY = "#5cc8f2", WARM = "#ff9a66", OK = "#1b7f3b";
+const GREEN = [111, 211, 154], RUST = [255, 138, 60], ALERT = [92, 200, 242];
+
+// The shots, by start time in seconds. Each draws itself from its own local time.
+const SHOTS = [
+  { at: 0.0, draw: shotLeaf },      // a healthy leaf, then rust spreading over it
+  { at: 4.8, draw: shotSpread },    // the same disease moving from plot to plot
+  { at: 7.8, draw: shotYear },      // the officer comes twice a year
+  { at: 10.6, draw: shotCard },     // three leaves on the capture card, checked offline
+  { at: 14.0, draw: shotHandoff },  // the result goes to the basic phone as an SMS
+  { at: 17.0, draw: shotWarn },     // three reports, an approved alert, nine neighbours warned
+  { at: 20.4, draw: shotLogo },
+];
+const CAPTIONS = [
+  { from: 0.3, to: 2.4, parts: [["Noor's coffee "], ["yields are falling", WARM], [","]] },
+  { from: 2.5, to: 4.7, parts: [["and she "], ["cannot say why", WARM], ["."]] },
+  { from: 4.9, to: 7.7, parts: [["Leaf disease "], ["spreads", WARM], [" from farm to farm,"]] },
+  { from: 7.9, to: 10.5, parts: [["and the officer visits "], ["twice a year", WARM], ["."]] },
+  { from: 10.7, to: 13.9, parts: [["Jirani", SKY], [" checks "], ["three leaves", SKY], [", offline,"]] },
+  { from: 14.1, to: 16.9, parts: [["sends the result to her "], ["basic phone", SKY], [","]] },
+  { from: 17.1, to: 20.3, parts: [["and the cooperative "], ["warns the neighbours", SKY], ["."]] },
+];
+const LABELS = [{ from: 0.3, to: 10.4, text: "THE PROBLEM" }, { from: 10.8, to: 17.0, text: "WHAT JIRANI DOES" }];
+const FADE = 0.35; // crossfade between shots, seconds
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeBack = (k) => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);
+const mix = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
+const rgba = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const TAU = Math.PI * 2;
+/** Seeded random numbers, so every render places things the same way. */
+function rng(seed) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let x = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ---- shared pieces ----
+
+const DUST = (() => { const r = rng(7); return Array.from({ length: 70 }, () => ({ x: r(), y: r(), z: r(), ph: r() * TAU })); })();
+/** Dark radial background with slow out-of-focus dust. */
+function backdrop(c, t, inner, outer, dust) {
+  const g = c.createRadialGradient(W * 0.5, H * 0.45, 40, W * 0.5, H * 0.5, W * 0.72);
+  g.addColorStop(0, rgba(inner)); g.addColorStop(1, rgba(outer));
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  for (const d of DUST) {
+    const x = ((d.x + t * 0.006 * (0.3 + d.z) + 0.008 * Math.sin(t * 0.5 + d.ph)) % 1) * W;
+    const y = ((d.y - t * 0.009 * (0.3 + d.z) + 1) % 1) * H;
+    const r = 3 + 15 * d.z * d.z, a = 0.34 - 0.24 * d.z;
+    const s = c.createRadialGradient(x, y, 0, x, y, r);
+    s.addColorStop(0, rgba(dust, a)); s.addColorStop(0.6, rgba(dust, a * 0.5)); s.addColorStop(1, rgba(dust, 0));
+    c.fillStyle = s; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  }
+}
+
+function leafPath(L, Wd) {
+  const p = new Path2D();
+  p.moveTo(0, L / 2);
+  p.bezierCurveTo(Wd * 0.58, L * 0.36, Wd * 0.6, -L * 0.14, Wd * 0.13, -L * 0.37);
+  p.quadraticCurveTo(Wd * 0.04, -L * 0.44, 0, -L / 2);
+  p.quadraticCurveTo(-Wd * 0.04, -L * 0.44, -Wd * 0.13, -L * 0.37);
+  p.bezierCurveTo(-Wd * 0.6, -L * 0.14, -Wd * 0.58, L * 0.36, 0, L / 2);
+  p.closePath();
+  return p;
+}
+/** Rust lesions as fractions of the leaf size; `d` is when each one starts, 0..1. */
+function makeSpots(seed, n) {
+  const r = rng(seed), out = [];
+  while (out.length < n) {
+    const u = 0.1 + r() * 0.78, x = (r() - 0.5) * 0.84;
+    if (Math.abs(x) < 0.4 * Math.pow(Math.sin(Math.PI * u), 0.9)) out.push({ x, y: 0.5 - u, r: 0.022 + r() * 0.04, d: r() });
+  }
+  return out.sort((a, b) => a.d - b.d);
+}
+/** A coffee leaf, tip up, centred on the origin. `spread` 0..1 grows the rust spots; `sick` 0..1 yellows the blade. */
+function drawLeaf(c, L, Wd, { spots = [], spread = 0, sick = 0, glow = [120, 255, 170] } = {}) {
+  const path = leafPath(L, Wd);
+  c.save();
+  c.shadowColor = rgba(glow, 0.6); c.shadowBlur = L * 0.1; c.fillStyle = "#0f3d24"; c.fill(path);
+  c.restore();
+  c.save(); c.clip(path);
+  const g = c.createLinearGradient(-Wd / 2, 0, Wd / 2, 0);
+  g.addColorStop(0, "#0d3a22"); g.addColorStop(0.44, "#2f8a4c"); g.addColorStop(0.56, "#297a44"); g.addColorStop(1, "#0b301c");
+  c.fillStyle = g; c.fillRect(-Wd, -L, 2 * Wd, 2 * L);
+  const s = c.createLinearGradient(0, -L / 2, 0, L / 2);
+  s.addColorStop(0, "rgba(190,255,200,0.18)"); s.addColorStop(0.6, "rgba(0,0,0,0)"); s.addColorStop(1, "rgba(0,0,0,0.3)");
+  c.fillStyle = s; c.fillRect(-Wd, -L, 2 * Wd, 2 * L);
+  if (sick > 0) { c.fillStyle = `rgba(214,190,70,${0.3 * sick})`; c.fillRect(-Wd, -L, 2 * Wd, 2 * L); }
+  // veins
+  c.strokeStyle = "rgba(190,240,190,0.4)"; c.lineCap = "round";
+  c.lineWidth = L * 0.011; c.beginPath(); c.moveTo(0, L / 2); c.quadraticCurveTo(Wd * 0.02, 0, 0, -L / 2); c.stroke();
+  c.lineWidth = L * 0.0045;
+  for (let i = 0; i < 9; i++) {
+    const y = lerp(L * 0.36, -L * 0.3, i / 8);
+    const reach = Wd * 0.47 * Math.sin(Math.PI * clamp(((L / 2 - y) / L) * 0.95 + 0.04));
+    for (const side of [-1, 1]) {
+      c.beginPath(); c.moveTo(0, y); c.quadraticCurveTo(side * reach * 0.55, y - L * 0.015, side * reach, y - L * 0.085); c.stroke();
+    }
+  }
+  for (const sp of spots) {
+    const k = easeOut(clamp((spread - sp.d * 0.7) / 0.3));
+    if (k <= 0) continue;
+    const x = sp.x * Wd, y = sp.y * L, r = sp.r * L * k;
+    const sg = c.createRadialGradient(x, y, 0, x, y, r);
+    sg.addColorStop(0, "rgba(150,62,14,0.95)"); sg.addColorStop(0.35, "rgba(222,120,28,0.92)");
+    sg.addColorStop(0.7, "rgba(244,190,60,0.55)"); sg.addColorStop(1, "rgba(244,200,70,0)");
+    c.fillStyle = sg; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  }
+  const gl = c.createLinearGradient(-Wd * 0.4, -L * 0.3, Wd * 0.1, L * 0.1);
+  gl.addColorStop(0, "rgba(255,255,255,0.2)"); gl.addColorStop(0.5, "rgba(255,255,255,0.03)"); gl.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = gl; c.fillRect(-Wd, -L, 2 * Wd, 2 * L);
+  c.restore();
+  c.save(); c.strokeStyle = "#2a6b3f"; c.lineCap = "round"; c.lineWidth = L * 0.014;
+  c.beginPath(); c.moveTo(0, L / 2 - 2); c.quadraticCurveTo(L * 0.012, L * 0.56, -L * 0.02, L * 0.61); c.stroke(); c.restore();
+}
+
+/** A ring that grows from r0 to r1 and fades as k goes 0..1. */
+function pulse(c, x, y, r0, r1, k, col, lw = 5) {
+  if (k <= 0 || k >= 1) return;
+  c.save(); c.strokeStyle = rgba(col, 1 - k); c.lineWidth = lw; c.shadowColor = rgba(col, 0.8); c.shadowBlur = 24;
+  c.beginPath(); c.arc(x, y, lerp(r0, r1, easeOut(k)), 0, TAU); c.stroke(); c.restore();
+}
+function tickBadge(c, x, y, r, k) {
+  if (k <= 0) return;
+  c.save(); c.translate(x, y); c.scale(easeBack(k), easeBack(k));
+  c.shadowColor = "rgba(0,0,0,0.35)"; c.shadowBlur = 12; c.fillStyle = OK; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+  c.shadowBlur = 0; c.strokeStyle = "#fff"; c.lineWidth = r * 0.24; c.lineCap = "round"; c.lineJoin = "round";
+  c.beginPath(); c.moveTo(-r * 0.42, r * 0.02); c.lineTo(-r * 0.1, r * 0.34); c.lineTo(r * 0.46, -r * 0.3); c.stroke();
+  c.restore();
+}
+/** A message bubble centred on (x, y); s is its scale. */
+function bubble(c, x, y, s, col, a = 1) {
+  c.save(); c.translate(x, y); c.scale(s, s); c.globalAlpha *= a;
+  c.shadowColor = rgba(col, 0.9); c.shadowBlur = 26; c.fillStyle = rgba(col);
+  c.beginPath(); c.roundRect(-34, -24, 68, 44, 12); c.fill();
+  c.beginPath(); c.moveTo(-20, 16); c.lineTo(-26, 34); c.lineTo(-2, 18); c.closePath(); c.fill();
+  c.shadowBlur = 0; c.strokeStyle = "rgba(255,255,255,0.95)"; c.lineWidth = 5; c.lineCap = "round";
+  for (const [yy, w] of [[-11, 40], [0, 40], [11, 24]]) { c.beginPath(); c.moveTo(-20, yy); c.lineTo(-20 + w, yy); c.stroke(); }
+  c.restore();
+}
+const ICON_LEAF = new Path2D("M14 40c0-14 12-24 34-26-2 22-12 34-26 34-3 0-6-1-8-3l-4 5-3-2 5-5c1-1 2-2 2-3z");
+const ICON_VEIN = new Path2D("M20 44c8-8 14-14 22-22");
+/** The app icon (app/public/icon.svg), size px, top-left at (x, y). */
+function appIcon(c, x, y, size, outline = true) {
+  c.save(); c.translate(x, y); c.scale(size / 64, size / 64);
+  c.fillStyle = BRAND; c.beginPath(); c.roundRect(0, 0, 64, 64, 14); c.fill();
+  if (outline) { c.strokeStyle = "rgba(255,255,255,0.22)"; c.lineWidth = 1; c.stroke(); }
+  c.fillStyle = BLUE; c.fill(ICON_LEAF);
+  c.strokeStyle = BRAND; c.lineWidth = 2.5; c.lineCap = "round"; c.stroke(ICON_VEIN);
+  c.restore();
+}
+
+// The cooperative's plots as seen from above. Sorted by distance from the first plot that reports rust.
+const PLOTS = (() => {
+  const r = rng(21), cx = W / 2, cy = H * 0.45, pts = [];
+  while (pts.length < 40) {
+    const a = r() * TAU, d = Math.sqrt(r());
+    const p = { x: cx + Math.cos(a) * d * 800, y: cy + Math.sin(a) * d * 380, rot: (r() - 0.5) * 1.2, w: 50 + r() * 26, h: 34 + r() * 16 };
+    if (pts.every((q) => Math.hypot(q.x - p.x, q.y - p.y) > 96)) pts.push(p);
+  }
+  const src = pts.reduce((best, p) => (Math.hypot(p.x - cx, p.y - cy) < Math.hypot(best.x - cx, best.y - cy) ? p : best));
+  for (const p of pts) p.d = Math.hypot(p.x - src.x, p.y - src.y);
+  pts.sort((a, b) => a.d - b.d);
+  // each plot catches the disease from its nearest neighbour that had it earlier
+  pts.forEach((p, i) => {
+    p.from = i ? pts.slice(0, i).reduce((best, q) => (Math.hypot(q.x - p.x, q.y - p.y) < Math.hypot(best.x - p.x, best.y - p.y) ? q : best)) : null;
+  });
+  return pts;
+})();
+function contours(c) {
+  c.save(); c.strokeStyle = "rgba(255,255,255,0.05)"; c.lineWidth = 1.5;
+  for (const [cx, cy, n, ph] of [[W * 0.3, H * 0.33, 7, 0.4], [W * 0.74, H * 0.62, 8, 2.1]]) {
+    for (let k = 1; k <= n; k++) {
+      c.beginPath();
+      for (let i = 0; i <= 72; i++) {
+        const th = (i / 72) * TAU, r = k * 62 * (1 + 0.13 * Math.sin(3 * th + ph + k * 0.3) + 0.07 * Math.sin(5 * th + ph * 2));
+        c.lineTo(cx + Math.cos(th) * r * 1.5, cy + Math.sin(th) * r);
+      }
+      c.closePath(); c.stroke();
+    }
+  }
+  c.restore();
+}
+function drawPlot(c, p, col, pop = 0) {
+  c.save(); c.translate(p.x, p.y);
+  c.save(); c.rotate(p.rot); c.fillStyle = rgba(col, 0.13); c.strokeStyle = rgba(col, 0.4); c.lineWidth = 1.5;
+  c.beginPath(); c.roundRect(-p.w / 2, -p.h / 2, p.w, p.h, 8); c.fill(); c.stroke(); c.restore();
+  c.shadowColor = rgba(col, 0.9); c.shadowBlur = 16 + 30 * pop; c.fillStyle = rgba(col);
+  c.beginPath(); c.arc(0, 0, 7 * (1 + 0.9 * pop), 0, TAU); c.fill();
+  c.restore();
+}
+/** Slow camera move on the map: scale z about the first rust plot. */
+function mapZoom(c, z) { const s = PLOTS[0]; c.translate(s.x, s.y); c.scale(z, z); c.translate(-s.x, -s.y); }
+
+// ---- the shots ----
+
+const LEAF_SPOTS = makeSpots(3, 26);
+function shotLeaf(c, t) {
+  const sick = easeInOut(prog(t, 2.2, 4.7));
+  backdrop(c, t, mix([14, 56, 42], [78, 30, 22], sick), mix([2, 10, 13], [11, 3, 4], sick), mix([170, 255, 210], [255, 190, 150], sick));
+  c.save();
+  c.translate(W / 2, H * 0.44 + 9 * Math.sin(t * 0.9));
+  const z = 1 + 0.035 * t; c.scale(z, z); c.rotate(-0.42 + 0.03 * t + 0.02 * Math.sin(t * 0.7));
+  drawLeaf(c, 660, 300, { spots: LEAF_SPOTS, spread: sick, sick, glow: mix([120, 255, 170], [255, 150, 80], sick) });
+  c.restore();
+}
+
+function shotSpread(c, t) {
+  backdrop(c, t, [62, 30, 24], [9, 4, 5], [255, 190, 150]);
+  c.save(); mapZoom(c, 1 + 0.025 * t); contours(c);
+  const at = (p) => 0.4 + p.d / 180; // the moment the disease reaches a plot
+  c.lineCap = "round";
+  for (const p of PLOTS) {
+    const k = prog(t, at(p) - 0.3, at(p));
+    if (!p.from || k <= 0) continue;
+    c.strokeStyle = rgba(RUST, 0.38); c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(p.from.x, p.from.y); c.lineTo(lerp(p.from.x, p.x, k), lerp(p.from.y, p.y, k)); c.stroke();
+  }
+  for (const p of PLOTS) {
+    const k = prog(t, at(p), at(p) + 0.4);
+    drawPlot(c, p, mix(GREEN, RUST, easeOut(k)), Math.sin(Math.PI * k));
+    pulse(c, p.x, p.y, 10, p === PLOTS[0] ? 120 : 54, prog(t, at(p), at(p) + 0.7), RUST, 3);
+  }
+  c.restore();
+}
+
+function shotYear(c, t) {
+  backdrop(c, t, [32, 32, 58], [4, 5, 12], [190, 195, 255]);
+  const cx = W / 2, cy = H * 0.455, R = 270, MONTHS = "JFMAMJJASOND", VISITS = [2, 8];
+  const year = easeInOut(prog(t, 0.25, 2.2)); // one trip round the ring is one year
+  c.save(); c.textAlign = "center"; c.textBaseline = "middle";
+  for (let i = 0; i < 12; i++) {
+    const a0 = -Math.PI / 2 + ((i + 0.07) / 12) * TAU, a1 = -Math.PI / 2 + ((i + 0.93) / 12) * TAU, am = (a0 + a1) / 2;
+    const passed = prog(year, i / 12, (i + 1) / 12), visit = VISITS.includes(i);
+    c.shadowBlur = 0; c.lineWidth = 22; c.strokeStyle = "rgba(255,255,255,0.09)";
+    c.beginPath(); c.arc(cx, cy, R, a0, a1); c.stroke();
+    if (passed > 0) {
+      c.strokeStyle = visit ? SKY : "rgba(255,255,255,0.24)";
+      if (visit) { c.shadowColor = "rgba(0,159,218,0.95)"; c.shadowBlur = 32; }
+      c.beginPath(); c.arc(cx, cy, R, a0, lerp(a0, a1, passed)); c.stroke();
+    }
+    c.shadowBlur = 0; c.font = `600 30px ${FONT}`; c.fillStyle = visit && passed >= 1 ? "#a6e4ff" : "rgba(255,255,255,0.45)";
+    c.fillText(MONTHS[i], cx + Math.cos(am) * (R + 58), cy + Math.sin(am) * (R + 58));
+    if (visit) pulse(c, cx + Math.cos(am) * R, cy + Math.sin(am) * R, 16, 96, prog(year, (i + 0.5) / 12, (i + 0.5) / 12 + 0.18), ALERT, 4);
+  }
+  if (year > 0 && year < 1) {
+    const ah = -Math.PI / 2 + year * TAU;
+    c.shadowColor = "#fff"; c.shadowBlur = 22; c.fillStyle = "#fff";
+    c.beginPath(); c.arc(cx + Math.cos(ah) * R, cy + Math.sin(ah) * R, 9, 0, TAU); c.fill();
+  }
+  const n = VISITS.filter((i) => year >= (i + 0.5) / 12).length;
+  c.shadowBlur = 0; c.textBaseline = "alphabetic";
+  c.font = `700 210px ${FONT}`; c.fillStyle = "#fff"; c.fillText(String(n), cx, cy + 52);
+  c.font = `500 38px ${FONT}`; c.fillStyle = "rgba(255,255,255,0.62)"; c.fillText(n === 1 ? "visit a year" : "visits a year", cx, cy + 116);
+  c.restore();
+}
+
+const CARD_LEAVES = [0, 1, 2].map((i) => ({ x: -330 + i * 245, tilt: [-0.1, 0.06, -0.04][i], spots: makeSpots(40 + i, 7) }));
+function shotCard(c, t) {
+  backdrop(c, t, [8, 54, 86], [1, 9, 20], [150, 220, 255]);
+  c.save();
+  c.translate(W / 2, H * 0.455); c.rotate(-0.03); const z = 0.97 + 0.012 * t; c.scale(z, z);
+  // the printed capture card: three leaf boxes, a cherry box, corner marks in three corners, a scale bar
+  c.save(); c.shadowColor = "rgba(0,0,0,0.55)"; c.shadowBlur = 60; c.shadowOffsetY = 24; c.fillStyle = "#f3f5f7";
+  c.beginPath(); c.roundRect(-520, -290, 1040, 580, 20); c.fill(); c.restore();
+  for (const [x, y] of [[-496, -266], [462, -266], [-496, 232]]) { c.fillStyle = "#111"; c.fillRect(x, y, 34, 34); c.fillStyle = "#fff"; c.fillRect(x + 9, y + 9, 16, 16); }
+  c.save(); c.setLineDash([12, 9]); c.strokeStyle = "#8a96a3"; c.lineWidth = 3;
+  for (const lf of CARD_LEAVES) c.strokeRect(lf.x - 110, -200, 220, 400);
+  c.strokeRect(300, -200, 160, 160); c.restore();
+  c.fillStyle = "#55606e"; c.font = `600 20px ${FONT}`; c.textAlign = "center"; c.textBaseline = "alphabetic";
+  CARD_LEAVES.forEach((lf, i) => c.fillText(String(i + 1), lf.x, -214));
+  c.fillText("cherry", 380, -214);
+  c.fillText("20 mm", 380, 150);
+  c.strokeStyle = "#111"; c.lineWidth = 4; c.beginPath(); c.moveTo(300, 170); c.lineTo(460, 170); c.moveTo(300, 160); c.lineTo(300, 180); c.moveTo(460, 160); c.lineTo(460, 180); c.stroke();
+  c.textAlign = "left"; c.fillText("Ondera / Jirani", -440, 258);
+  // the leaves are laid on the card one by one
+  CARD_LEAVES.forEach((lf, i) => {
+    const k = prog(t, 0.25 + i * 0.22, 0.75 + i * 0.22);
+    if (k <= 0) return;
+    c.save(); c.globalAlpha = clamp(k * 2.5); c.translate(lf.x, -lerp(240, 0, easeOut(k))); const s = lerp(1.3, 1, easeOut(k)); c.scale(s, s); c.rotate(lf.tilt + (1 - easeOut(k)) * 0.5);
+    drawLeaf(c, 330, 150, { spots: lf.spots, spread: 1, sick: 0.5, glow: [0, 0, 0] });
+    c.restore();
+  });
+  // the phone's viewfinder closes on the card, then the check sweeps across
+  const vf = prog(t, 1.0, 1.4);
+  if (vf > 0) {
+    const hw = 580 * lerp(1.12, 1, easeOut(vf)), hh = 340 * lerp(1.12, 1, easeOut(vf)), len = 76;
+    c.save(); c.globalAlpha = vf; c.strokeStyle = SKY; c.lineWidth = 7; c.lineCap = "round"; c.lineJoin = "round"; c.shadowColor = "rgba(0,159,218,0.9)"; c.shadowBlur = 22;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      c.beginPath(); c.moveTo(sx * hw, sy * (hh - len)); c.lineTo(sx * hw, sy * hh); c.lineTo(sx * (hw - len), sy * hh); c.stroke();
+    }
+    c.restore();
+  }
+  const scanAt = (x) => 1.45 + (x + 560) / 1120; // when the sweep line passes x
+  const sk = prog(t, 1.45, 2.45);
+  if (sk > 0 && sk < 1) {
+    const x = lerp(-560, 560, sk);
+    c.save(); c.beginPath(); c.rect(-580, -340, 1160, 680); c.clip();
+    const g = c.createLinearGradient(x - 150, 0, x, 0); g.addColorStop(0, "rgba(0,159,218,0)"); g.addColorStop(1, "rgba(0,159,218,0.3)");
+    c.fillStyle = g; c.fillRect(x - 150, -330, 150, 660);
+    c.strokeStyle = "#c9efff"; c.lineWidth = 4; c.shadowColor = BLUE; c.shadowBlur = 24; c.beginPath(); c.moveTo(x, -330); c.lineTo(x, 330); c.stroke();
+    c.restore();
+  }
+  for (const lf of CARD_LEAVES) {
+    pulse(c, lf.x, 0, 60, 170, prog(t, scanAt(lf.x), scanAt(lf.x) + 0.6), ALERT, 5);
+    tickBadge(c, lf.x + 78, 168, 26, prog(t, scanAt(lf.x), scanAt(lf.x) + 0.3));
+  }
+  c.restore();
+  // "offline" chip: nothing leaves the phone during the check
+  const ok = prog(t, 0.7, 1.0);
+  if (ok > 0) {
+    c.save(); c.globalAlpha = ok; c.translate(W - 330, 150 - 12 * (1 - easeOut(ok)));
+    c.fillStyle = "rgba(4,14,28,0.78)"; c.strokeStyle = "rgba(92,200,242,0.7)"; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(0, 0, 232, 64, 32); c.fill(); c.stroke();
+    c.strokeStyle = "#fff"; c.lineWidth = 4; c.lineCap = "round";
+    for (const r of [10, 20, 30]) { c.beginPath(); c.arc(44, 46, r, -Math.PI * 0.75, -Math.PI * 0.25); c.stroke(); }
+    c.fillStyle = "#fff"; c.beginPath(); c.arc(44, 46, 3.5, 0, TAU); c.fill();
+    c.strokeStyle = WARM; c.lineWidth = 5; c.beginPath(); c.moveTo(22, 50); c.lineTo(66, 14); c.stroke();
+    c.font = `700 24px ${FONT}`; c.letterSpacing = "4px"; c.textBaseline = "middle"; c.fillStyle = "#fff"; c.fillText("OFFLINE", 86, 33);
+    c.restore();
+  }
+}
+
+function shotHandoff(c, t) {
+  backdrop(c, t, [8, 50, 82], [1, 9, 20], [150, 220, 255]);
+  const sent = prog(t, 0.6, 1.7), got = prog(t, 1.65, 1.95);
+  c.translate(W / 2, H * 0.46); c.scale(1.16, 1.16); c.translate(-W / 2, -H * 0.46);
+  // the household smartphone with the result card
+  c.save(); c.translate(W * 0.3, H * 0.463 + 6 * Math.sin(t * 1.1));
+  c.save(); c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 60; c.shadowOffsetY = 24; c.fillStyle = "#0b1420";
+  c.beginPath(); c.roundRect(-160, -320, 320, 640, 42); c.fill(); c.restore();
+  c.strokeStyle = "rgba(255,255,255,0.28)"; c.lineWidth = 2; c.beginPath(); c.roundRect(-160, -320, 320, 640, 42); c.stroke();
+  c.save(); c.beginPath(); c.roundRect(-146, -306, 292, 612, 30); c.clip();
+  c.fillStyle = "#f2f5f8"; c.fillRect(-146, -306, 292, 612);
+  c.fillStyle = BRAND; c.fillRect(-146, -306, 292, 86);
+  appIcon(c, -126, -284, 44, false);
+  c.fillStyle = "#fff"; c.font = `700 28px ${FONT}`; c.textBaseline = "middle"; c.fillText("Jirani", -70, -262);
+  c.fillStyle = "#fff"; c.beginPath(); c.roundRect(-128, -200, 256, 330, 16); c.fill();
+  c.fillStyle = "#0f1b2a"; c.font = `700 38px ${FONT}`; c.textBaseline = "alphabetic"; c.fillText("Leaf rust", -108, -138);
+  c.fillStyle = "#55606e"; c.font = `600 18px ${FONT}`; c.fillText("Severity", -108, -100);
+  for (let i = 0; i < 5; i++) { c.fillStyle = i < 3 ? "#d98a00" : "#e1e6ec"; c.beginPath(); c.roundRect(-108 + i * 44, -86, 36, 12, 6); c.fill(); }
+  c.fillStyle = "#c5ced8";
+  for (const [y, w] of [[-40, 216], [-10, 186], [20, 204], [50, 130]]) { c.beginPath(); c.roundRect(-108, y, w, 12, 6); c.fill(); }
+  const press = Math.sin(Math.PI * prog(t, 0.35, 0.7));
+  c.fillStyle = press > 0.01 ? "#35b8ee" : BLUE; c.beginPath(); c.roundRect(-128 + 5 * press, 170 + 2 * press, 256 - 10 * press, 76 - 4 * press, 16); c.fill();
+  c.fillStyle = "#fff"; c.font = `700 26px ${FONT}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText("Send as SMS", 0, 209);
+  c.restore();
+  pulse(c, 0, 208, 30, 150, prog(t, 0.45, 1.0), ALERT, 4);
+  c.restore();
+  // her own basic phone
+  const bx = W * 0.7, by = H * 0.47 + 6 * Math.sin(t * 1.1 + 1.5);
+  c.save(); c.translate(bx, by);
+  c.save(); c.shadowColor = "rgba(0,0,0,0.6)"; c.shadowBlur = 60; c.shadowOffsetY = 24;
+  const body = c.createLinearGradient(0, -280, 0, 280); body.addColorStop(0, "#2a3646"); body.addColorStop(1, "#141b25");
+  c.fillStyle = body; c.beginPath(); c.roundRect(-125, -280, 250, 560, 40); c.fill(); c.restore();
+  c.strokeStyle = "rgba(255,255,255,0.2)"; c.lineWidth = 2; c.beginPath(); c.roundRect(-125, -280, 250, 560, 40); c.stroke();
+  c.save(); if (got > 0) { c.shadowColor = `rgba(190,240,180,${0.8 * got})`; c.shadowBlur = 40; }
+  c.fillStyle = rgba(mix([96, 116, 100], [196, 226, 186], got)); c.beginPath(); c.roundRect(-96, -240, 192, 150, 10); c.fill(); c.restore();
+  if (got > 0) {
+    c.save(); c.globalAlpha = got; c.strokeStyle = "#1c2a1e"; c.fillStyle = "#1c2a1e"; c.lineWidth = 4; c.lineJoin = "round";
+    c.strokeRect(-80, -220, 40, 30); c.beginPath(); c.moveTo(-80, -220); c.lineTo(-60, -204); c.lineTo(-40, -220); c.stroke();
+    c.font = `700 19px ${FONT}`; c.textBaseline = "middle"; c.fillText("1 new SMS", -30, -204);
+    for (const [y, w] of [[-166, 158], [-144, 158], [-122, 100]]) c.fillRect(-80, y, w, 7);
+    c.restore();
+  }
+  c.fillStyle = "rgba(255,255,255,0.13)"; c.beginPath(); c.roundRect(-44, -66, 88, 46, 18); c.fill();
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 3; k++) { c.beginPath(); c.roundRect(-99 + k * 70, 2 + r * 62, 58, 44, 14); c.fill(); }
+  c.restore();
+  pulse(c, bx, by - 165, 80, 260, prog(t, 1.7, 2.5), ALERT, 5);
+  pulse(c, bx, by - 165, 80, 260, prog(t, 1.95, 2.75), ALERT, 4);
+  // the SMS travels from one phone to the other
+  if (sent > 0 && sent < 1) {
+    const p0 = [W * 0.3 + 170, H * 0.463 + 150], p1 = [W * 0.5, 90], p2 = [bx, by - 165];
+    const at = (k) => [(1 - k) * (1 - k) * p0[0] + 2 * (1 - k) * k * p1[0] + k * k * p2[0], (1 - k) * (1 - k) * p0[1] + 2 * (1 - k) * k * p1[1] + k * k * p2[1]];
+    const k = easeInOut(sent);
+    for (let j = 1; j <= 14; j++) {
+      const kk = k - j * 0.028; if (kk <= 0) break;
+      const [x, y] = at(kk);
+      c.fillStyle = rgba(ALERT, 0.55 * (1 - j / 15)); c.beginPath(); c.arc(x, y, 7 * (1 - j / 18), 0, TAU); c.fill();
+    }
+    const [x, y] = at(k);
+    bubble(c, x, y, lerp(1.25, 0.8, k), ALERT, 1 - prog(sent, 0.9, 1));
+  }
+}
+
+const NEAR = PLOTS.slice(3, 12); // the nine neighbours inside the alert area
+function shotWarn(c, t) {
+  backdrop(c, t, [8, 46, 78], [1, 8, 19], [150, 220, 255]);
+  const src = PLOTS[0], R = NEAR[NEAR.length - 1].d + 52;
+  c.save(); mapZoom(c, 1.04 - 0.012 * t); contours(c);
+  // the cooperative's draft alert area, drawn round the three reports
+  const ring = easeInOut(prog(t, 0.2, 0.95));
+  if (ring > 0) {
+    c.save(); c.setLineDash([14, 12]); c.strokeStyle = rgba(ALERT, 0.85); c.lineWidth = 3;
+    c.beginPath(); c.arc(src.x, src.y, R, -Math.PI / 2, -Math.PI / 2 + ring * TAU); c.stroke();
+    c.fillStyle = rgba(ALERT, 0.06 * ring); c.beginPath(); c.arc(src.x, src.y, R, 0, TAU); c.fill(); c.restore();
+  }
+  const waveAt = (p) => 1.45 + (p.d / R) * 0.9; // when the alert reaches a neighbour
+  pulse(c, src.x, src.y, 20, R, prog(t, 1.4, 2.5), ALERT, 5);
+  pulse(c, src.x, src.y, 20, R, prog(t, 1.8, 2.9), ALERT, 3);
+  PLOTS.forEach((p, i) => {
+    if (i < 3) return drawPlot(c, p, RUST, 0.25 + 0.2 * Math.sin(t * 4 + i));
+    if (i >= 12) return drawPlot(c, p, GREEN);
+    const k = prog(t, waveAt(p), waveAt(p) + 0.4);
+    drawPlot(c, p, mix(GREEN, ALERT, easeOut(k)), Math.sin(Math.PI * k) * 0.8);
+  });
+  for (const p of NEAR) {
+    const k = prog(t, waveAt(p), waveAt(p) + 0.35);
+    if (k > 0) bubble(c, p.x + 4, p.y - 44, 0.62 * easeBack(k), ALERT, clamp(k * 3));
+  }
+  c.restore();
+  // a person decides: nothing is sent before the officer approves
+  const ok = prog(t, 0.85, 1.2);
+  if (ok > 0) {
+    c.save(); c.globalAlpha = clamp(ok * 2); c.translate(W - 270, 170); const s = easeBack(ok); c.scale(s, s);
+    c.fillStyle = "rgba(4,14,28,0.82)"; c.strokeStyle = "rgba(92,200,242,0.7)"; c.lineWidth = 2;
+    c.beginPath(); c.roundRect(-180, -34, 360, 68, 34); c.fill(); c.stroke();
+    tickBadge(c, -142, 0, 20, 1);
+    c.font = `700 28px ${FONT}`; c.fillStyle = "#fff"; c.textBaseline = "middle"; c.textAlign = "left"; c.fillText("Officer approved", -108, 1);
+    c.restore();
+  }
+}
+
+function shotLogo(c, t) {
+  backdrop(c, t, [6, 58, 98], [0, 10, 24], [150, 220, 255]);
+  c.save(); c.textBaseline = "alphabetic";
+  c.font = `700 170px ${FONT}`; const ww = c.measureText("Jirani").width, size = 190, gap = 44;
+  const x0 = W / 2 - (size + gap + ww) / 2, cy = H * 0.44;
+  const ik = prog(t, 0.1, 0.6);
+  if (ik > 0) {
+    c.save(); c.translate(x0 + size / 2, cy); c.scale(easeBack(ik), easeBack(ik)); c.globalAlpha = clamp(ik * 2.5);
+    c.shadowColor = "rgba(0,159,218,0.75)"; c.shadowBlur = 70; appIcon(c, -size / 2, -size / 2, size); c.restore();
+  }
+  const wk = easeOut(prog(t, 0.3, 0.85));
+  c.globalAlpha = wk; c.fillStyle = "#fff"; c.fillText("Jirani", x0 + size + gap + 40 * (1 - wk), cy + 58);
+  const tk = easeOut(prog(t, 0.75, 1.3));
+  c.globalAlpha = tk; c.font = `500 50px ${FONT}`; c.textAlign = "center"; c.fillStyle = "#8fdcff";
+  c.fillText("Diagnose, track, warn.", W / 2, cy + 210 + 14 * (1 - tk));
+  c.restore();
+}
+
+// ---- overlays and the frame function ----
+
+function overlays(c, t) {
+  const v = c.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, W * 0.72);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,0.55)");
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+  // small logo in the corner while the product is on screen
+  const wm = Math.min(prog(t, 10.8, 11.2), 1 - prog(t, 20.1, 20.4));
+  if (wm > 0) {
+    c.save(); c.globalAlpha = 0.9 * wm; appIcon(c, 60, 48, 48);
+    c.font = `700 30px ${FONT}`; c.fillStyle = "#fff"; c.textBaseline = "middle"; c.fillText("Jirani", 122, 73); c.restore();
+  }
+  if (!SHOW_CAPTIONS) return;
+  for (const lb of LABELS) {
+    const a = Math.min(prog(t, lb.from, lb.from + 0.3), 1 - prog(t, lb.to - 0.3, lb.to));
+    if (a <= 0) continue;
+    c.save(); c.globalAlpha = 0.6 * a; c.font = `600 20px ${FONT}`; c.letterSpacing = "6px"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = "#fff"; c.fillText(lb.text, W / 2, 62); c.restore();
+  }
+  const cap = CAPTIONS.find((x) => t >= x.from && t < x.to);
+  if (cap) {
+    c.save(); c.globalAlpha = Math.min(prog(t, cap.from, cap.from + 0.12), 1 - prog(t, cap.to - 0.1, cap.to));
+    c.font = `600 44px ${FONT}`; c.textBaseline = "middle";
+    const widths = cap.parts.map((p) => c.measureText(p[0]).width), total = widths.reduce((a, b) => a + b, 0);
+    c.fillStyle = "rgba(8,14,22,0.86)"; c.beginPath(); c.roundRect(W / 2 - total / 2 - 28, 931, total + 56, 76, 12); c.fill();
+    let x = W / 2 - total / 2;
+    cap.parts.forEach((p, i) => { c.fillStyle = p[1] || "#fff"; c.fillText(p[0], x, 968); x += widths[i]; });
+    c.restore();
+  }
+}
+
+const stage = document.getElementById("stage"), ctx = stage.getContext("2d");
+const next = Object.assign(document.createElement("canvas"), { width: W, height: H }), nextCtx = next.getContext("2d");
+function drawShot(c, shot, local) { c.save(); shot.draw(c, local); c.restore(); }
+/** Draws the frame for time t (seconds) on the stage. */
+function render(t) {
+  t = clamp(t, 0, DURATION);
+  const i = SHOTS.findLastIndex((s) => t >= s.at), shot = SHOTS[i], local = t - shot.at;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  if (i > 0 && local < FADE) {
+    // the next shot fades in over the previous one while settling from a slight zoom
+    drawShot(ctx, SHOTS[i - 1], t - SHOTS[i - 1].at);
+    nextCtx.setTransform(1, 0, 0, 1, 0, 0); nextCtx.clearRect(0, 0, W, H);
+    drawShot(nextCtx, shot, local);
+    const k = easeInOut(local / FADE), z = 1.05 - 0.05 * k;
+    ctx.save(); ctx.globalAlpha = k; ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.drawImage(next, -W / 2, -H / 2); ctx.restore();
+  } else {
+    drawShot(ctx, shot, local);
+  }
+  overlays(ctx, t);
+  const black = Math.max(1 - prog(t, 0, 0.4), prog(t, DURATION - 0.35, DURATION));
+  if (black > 0) { ctx.fillStyle = `rgba(0,0,0,${black})`; ctx.fillRect(0, 0, W, H); }
+}
+window.JIRANI_INTRO = { W, H, FPS, DURATION, render };
+
+if (params.get("render") === "1") {
+  render(0);
+} else {
+  // preview: plays in a loop
+  const bar = document.getElementById("bar"), seek = document.getElementById("seek"), toggle = document.getElementById("toggle"), clock = document.getElementById("clock");
+  bar.hidden = false; seek.max = DURATION;
+  let playing = true, t = 0, last = performance.now();
+  const setPlaying = (on) => { playing = on; toggle.textContent = on ? "Pause" : "Play"; last = performance.now(); };
+  toggle.onclick = () => setPlaying(!playing);
+  seek.oninput = () => { t = Number(seek.value); setPlaying(false); };
+  addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); setPlaying(!playing); } });
+  (function loop(now) {
+    if (playing) { t = (t + (now - last) / 1000) % (DURATION + 0.8); last = now; seek.value = t; }
+    render(t); clock.textContent = `${Math.min(t, DURATION).toFixed(1)} / ${DURATION} s`;
+    requestAnimationFrame(loop);
+  })(performance.now());
+}
+</script>
+</body>
+</html>
