@@ -151,12 +151,14 @@ python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbou
 
 ### Simulation (the whole flow on one page)
 `/simulation` on the server shows the real farmer app (left, in a phone frame) next to the live dashboard (right) and
-plays the story in 15 steps: a refused photo, three leaves, the questions, the result card in English and Kiswahili,
+plays the story in 16 steps: a refused photo, three leaves (with the capture card on screen), the cherry photo,
+the questions (with the Gikuyu prompt), the result card with the cherry band in English and Kiswahili,
 the SMS handoff, "Ask the officer", Sync, neighbour reports, the draft alert and its approval, the officer's reply,
 the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play all**, or go step by step.
 
 - **Real:** the app, the model (it runs in the browser tab on the sample photos), the server rules and the dashboard.
-- **Simulated:** the farmer's taps, the photos (six held-out BRACOL test leaves and one non-leaf image in
+- **Simulated:** the farmer's taps, the photos (six held-out BRACOL test leaves, one non-leaf image and one real
+  photo of ripe cherry on white from Wikimedia Commons, in
   `app/public/sim/`), the two neighbour reports and the officer's clicks. Reports sent by the simulated phone are
   flagged synthetic.
 - The app runs in simulation mode (`?sim=1`) with its own database (`jirani-sim`), so it never touches a real

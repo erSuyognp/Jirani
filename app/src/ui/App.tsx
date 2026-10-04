@@ -150,6 +150,7 @@ export default function App() {
   useEffect(() => {
     if (!SIM) return;
     simHooks.addPhoto = addPhoto;
+    simHooks.addCherry = addCherry;
     simHooks.reset = () => simReset(plots);
   });
 

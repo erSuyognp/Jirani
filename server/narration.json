@@ -5,9 +5,10 @@
   "lines": [
     { "id": "01", "text": "This is Jirani. It helps a coffee farmer find out what is wrong with her trees, using a phone with no internet. On the left is the farmer's phone. On the right is the cooperative's dashboard. We start with clean demo data." },
     { "id": "02", "text": "First, the app checks the photo itself. This picture has no leaf in it, so the app refuses it and asks for another one." },
-    { "id": "03", "text": "Now the farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere." },
-    { "id": "04", "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed." },
-    { "id": "05", "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do." },
+    { "id": "03", "text": "The app shows a printed card with a box for each leaf. The farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere." },
+    { "id": "cherry", "text": "She can add one more photo: a handful of coffee cherry. A simple colour check gives it a band: A, B or C. This is a prototype, not a trained model, and it never gives a price." },
+    { "id": "04", "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed. Each question can also be played in Gikuyu, from recorded clips. Those clips are not recorded yet, so the app shows the question in Kiswahili." },
+    { "id": "05", "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do. It also shows the cherry band, next to what the cooperative's buyers paid on their last three tickets. In this demo those tickets are made up." },
     { "id": "06", "text": "The same card is available in Kiswahili. Every sentence comes from a fixed list. Nothing is made up by the machine." },
     { "id": "07", "text": "The farmer's own phone is a basic phone. So the result becomes one short text message, which she sends herself. It can also be played as audio." },
     { "id": "08", "text": "If she wants advice, she can send the three leaf photos to the extension officer. This is her choice. It is off unless she turns it on." },

@@ -267,9 +267,8 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
   the only gate. The marks and the 20 mm bar are printed for a later whole-card photo.
 - **Ticket clips say fixed amounts.** They are built from the seed. `manifest.json` records the amounts, the app
   plays a ticket clip only when they equal the range on the card, and a unit test fails when they drift.
-- **The simulation page still says "Three leaves on white paper"**, which is true of its sample photos; its
-  narration clips are tied to that script. The simulation skips the cherry photo, so its card shows "No cherry
-  photo. No grade."
+- The simulation first kept its old script and skipped the cherry photo; it was brought up to date later the same
+  day (see "Simulation: the new features" below).
 - The cherry band is not stored in history and not sent to the cooperative; the report packet is unchanged.
 
 **Checked**
@@ -291,7 +290,7 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
   Kiswahili line) → "Leaf rust, very low, 99%" with the picture row, the rule line and "No cherry photo. No grade."
   (236 / 92 / 66 ms). The result was not saved.
 - **Not checked:** a cherry photo on the phone (camera or gallery); audio playback of the new clips by ear; the live
-  sites (needs a push; Vercel and Render then rebuild); the simulation page end to end after these changes.
+  sites (needs a push; Vercel and Render then rebuild).
 
 **Real cherry photos (later the same day)**
 - Four photos from Wikimedia Commons were downloaded (originals in the gitignored `app/dev-samples/cherry/`) and run
@@ -311,6 +310,21 @@ retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule a
 - Three test images are left on the phone in `Pictures/Jirani/`: `cherry_test_generated.jpg`,
   `cherry_real_two_ripe_on_white.jpg`, `cherry_real_on_branch.jpg`.
 - Still not done: a real handful of cherry on the printed card, photographed with the phone camera.
+
+**Simulation: the new features (later the same day)**
+- `/simulation` now has 16 steps. New step 4, "A handful of cherry": the simulated phone adds a cherry photo
+  (`app/public/sim/cherry.jpg`, a real Commons photo of two ripe cherries on white, credited on the page) and the app
+  grades it. Step 3 first shows the printed-card diagram; step 5 taps "Play prompt (Gikuyu)" and shows the Kiswahili
+  line; step 6 scrolls through the picture row, the rule line under the causes and the harvest slot.
+- Steps carry their own narration id, so the new step did not renumber the clips. `server/narration.json`: lines 03, 04
+  and 05 reworded and a new line `cherry`. `build_narration.py` regenerated those four clips with ElevenLabs
+  (939 characters, sent with the key in `.env`); the other 13 are unchanged. 17 clips, 2.6 MB, 2 min 44 s.
+- Checked: all 16 steps ran to the end in the browser against the local server and the production build of the app
+  (narration switched off for speed), leaving 3 reports and 3 tickets on the dashboard. The same sample photos fed
+  straight into the app in simulation mode gave "Leaf rust, worse than 14 days ago", "Band A. Last coop tickets
+  355–390 USD/50kg. Not a price offer." and a 134-character SMS ending "Band A."
+- Not checked: the four new clips by ear; a narrated run; the page on the live sites. **The recorded video in
+  `recordings/` is now out of date**: run `node scripts/record_simulation.cjs <simulation URL>` again.
 
 ### Waiting on the user
 - [ ] **Record the Gikuyu clips** (8 short clips, list in `app/public/audio/ki/manifest.json`), or accept the placeholder note in the demo.

@@ -60,7 +60,7 @@
   <span class="tag">Simulation: the whole flow in one screen</span>
   <div class="links"><a href="/dashboard">Dashboard</a><a href="/">About Jirani</a></div>
 </div></header>
-<div class="what">Simulated: the farmer's taps, the sample leaf photos, the neighbours' reports and the officer's clicks. Real: the app, the model running in this browser tab, the server rules and the dashboard. The spoken explanation is a pre-recorded AI voice reading a fixed script.</div>
+<div class="what">Simulated: the farmer's taps, the sample leaf and cherry photos, the neighbours' reports, the officer's clicks and the buyer tickets. Real: the app, the model running in this browser tab, the server rules and the dashboard. The spoken explanation is a pre-recorded AI voice reading a fixed script. Cherry sample photo: Filo gèn', <a href="https://commons.wikimedia.org/wiki/File:Coffee_cherries_on_white_background.png" rel="noopener">Wikimedia Commons</a>, CC BY-SA 4.0.</div>
 
 <div class="now" style="margin-top:14px">
   <span class="n" id="now-n">{{ icon("leaf", 20) }}</span>
@@ -136,36 +136,38 @@
   }
 
   const STEPS = [
-    { t: "Start from clean demo data", d: "The server's demo data and the simulated phone are cleared. One earlier check of Block B (very low rust, 14 days ago) is preloaded on the phone as labelled demo data, so there is a trend to compare.",
+    { id: "01", t: "Start from clean demo data", d: "The server's demo data and the simulated phone are cleared. One earlier check of Block B (very low rust, 14 days ago) is preloaded on the phone as labelled demo data, so there is a trend to compare.",
       run: async () => { await post("/simulation/reset"); await phone("reset"); await dash("map-panel", 2500); } },
-    { t: "A bad photo is refused", d: "The quality gate checks blur, light and whether a leaf is in the picture, before the model runs. This image has no leaf, so it is not used.",
+    { id: "02", t: "A bad photo is refused", d: "The quality gate checks blur, light and whether a leaf is in the picture, before the model runs. This image has no leaf, so it is not used.",
       run: () => phone("bad_photo") },
-    { t: "Three leaves on white paper", d: "Three sample leaves from the held-out test set stand in for the camera. Each one is cropped and run through the 1 MB model inside this browser tab, with no server involved.",
+    { id: "03", t: "Three leaves, one box each", d: "The capture screen shows the printed card: one leaf per box. Three sample leaves from the held-out test set stand in for the camera (they were photographed on plain white, not on the card). Each one is cropped and run through the 1 MB model inside this browser tab, with no server involved.",
       run: () => phone("capture") },
-    { t: "Three tap-only questions", d: "Which block, what changed, and whether anyone sprayed. No typing.",
+    { id: "cherry", t: "A handful of cherry", d: "An optional fourth photo for the harvest slot. A colour check gives a band A, B or C, or no grade. It is a prototype, not a trained model, and the photo never produces a price.",
+      run: () => phone("cherry") },
+    { id: "04", t: "Three tap-only questions", d: "Which block, what changed, and whether anyone sprayed. No typing. \"Play prompt\" is for recorded Gikuyu clips; they are placeholders, so it only shows the question in Kiswahili.",
       run: () => phone("questions") },
-    { t: "The result card, offline", d: "Leaf rust, with confidence, severity and trend against the earlier check, a heatmap of where the model looked, one action, one thing not to do, and the likely causes of the yield drop.",
+    { id: "05", t: "The result card, offline", d: "Leaf rust, with confidence, severity and trend against the earlier check, a picture row, a heatmap of where the model looked, one action, one thing not to do, and the likely causes of the yield drop (rules over cached rain and soil estimates). Last, the cherry band next to the cooperative's last three buyer tickets, which are synthetic and not a price offer.",
       run: () => phone("result") },
-    { t: "The same card in Kiswahili", d: "Every sentence comes from a fixed list in both languages. Nothing is generated.",
+    { id: "06", t: "The same card in Kiswahili", d: "Every sentence comes from a fixed list in both languages. Nothing is generated.",
       run: () => phone("kiswahili") },
-    { t: "Handoff to a basic phone", d: "One SMS of 160 characters or fewer, which the farmer sends herself, and audio built from pre-recorded Kiswahili clips.",
+    { id: "07", t: "Handoff to a basic phone", d: "One SMS of 160 characters or fewer, which the farmer sends herself, with the cherry band at the end, and audio built from pre-recorded Kiswahili clips.",
       run: () => phone("handoff") },
-    { t: "Ask the officer", d: "The farmer chooses to send the three leaf photos for advice. This is off by default; photos stay on the phone otherwise.",
+    { id: "08", t: "Ask the officer", d: "The farmer chooses to send the three leaf photos for advice. This is off by default; photos stay on the phone otherwise.",
       run: () => phone("ask") },
-    { t: "Sync: the farmer presses Send", d: "The screen shows exactly what goes: plot, block and result, plus the photos she chose to send. On the dashboard the report, the photo request and a visit ticket appear.",
+    { id: "09", t: "Sync: the farmer presses Send", d: "The screen shows exactly what goes: plot, block and result, plus the photos she chose to send. On the dashboard the report, the photo request and a visit ticket appear.",
       run: async () => { await phone("sync"); await dash("consults"); await dash("tickets", 3500); } },
-    { t: "Neighbours report the same disease", d: "Two synthetic reports arrive from plots within 2 km. Three plots with the same problem in 14 days make a draft outbreak alert.",
+    { id: "10", t: "Neighbours report the same disease", d: "Two synthetic reports arrive from plots within 2 km. Three plots with the same problem in 14 days make a draft outbreak alert.",
       run: async () => { await post("/simulation/neighbours"); await dash("map-panel"); await dash("alerts", 3800); } },
-    { t: "The officer approves the alert", d: "Alerts are never sent automatically. After approval, messages to about nine neighbouring plots are written to the outbox as \"would be sent\" (mock SMS).",
+    { id: "11", t: "The officer approves the alert", d: "Alerts are never sent automatically. After approval, messages to about nine neighbouring plots are written to the outbox as \"would be sent\" (mock SMS).",
       run: async () => { const s = await state(); if (s.draft_alert) await post(`/alerts/${s.draft_alert}/approve`, { officer: OFFICER }); await dash("outbox"); } },
-    { t: "The officer answers the photo request", d: "The officer looks at the three photos and replies from a fixed list: here, leaf rust, high.",
+    { id: "12", t: "The officer answers the photo request", d: "The officer looks at the three photos and replies from a fixed list: here, leaf rust, high.",
       run: async () => { await dash("consults", 3200); const s = await state(); if (s.open_consult) await post(`/consults/${s.open_consult}/reply`, { reply: "rust", band: "high", officer: OFFICER }); await dash("consults", 3200); } },
-    { t: "Visit queue: where to go first", d: "Tickets are ranked by severity, worsening, outbreak area and waiting time, and numbered on the map. The officer confirms a date for the farmer's block.",
+    { id: "13", t: "Visit queue: where to go first", d: "Tickets are ranked by severity, worsening, outbreak area and waiting time, and numbered on the map. The officer confirms a date for the farmer's block.",
       run: async () => { await dash("tickets", 3800); const s = await state(); const t = s.tickets.find((x) => x.plot_id === DEMO_PLOT && x.status === "open");
         if (t) await post(`/tickets/${t.id}/schedule`, { visit_date: t.suggest_date, slot: t.suggest_slot, officer: OFFICER }); await dash("tickets", 3800); } },
-    { t: "The farmer hears back", d: "At her next sync the phone shows when the officer will come, what to do until then, and the officer's reply under the check.",
+    { id: "14", t: "The farmer hears back", d: "At her next sync the phone shows when the officer will come, what to do until then, and the officer's reply under the check.",
       run: async () => { await phone("news"); await phone("reply"); } },
-    { t: "When it cannot tell, it says so", d: "Three leaves that disagree give \"Not sure. Ask a person.\" with no diagnosis and \"Do not spray\". The farmer does not save this one.",
+    { id: "15", t: "When it cannot tell, it says so", d: "Three leaves that disagree give \"Not sure. Ask a person.\" with no diagnosis and \"Do not spray\". The farmer does not save this one.",
       run: () => phone("refusal") },
   ];
 
@@ -190,7 +192,6 @@
       a.play().then(() => window.__narration.push({ id, file: clip.file, at: Date.now() })).catch(() => resolve());
     });
   }
-  const clipId = (i) => String(i + 1).padStart(2, "0");
 
   const list = document.getElementById("steps");
   STEPS.forEach((s, i) => {
@@ -225,7 +226,7 @@
     const li = list.children[at];
     li.classList.remove("done", "fail");
     let ok = true;
-    const spoken = say(clipId(at)); // the step waits for its explanation to finish
+    const spoken = say(STEPS[at].id); // the step waits for its explanation to finish (clip ids: server/narration.json)
     try { await STEPS[at].run(); await spoken; li.classList.add("done"); }
     catch (e) { ok = false; hush(); failNote = `This step did not finish: ${e.message}`; li.classList.add("fail"); }
     busy = false;

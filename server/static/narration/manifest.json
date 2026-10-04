@@ -2,7 +2,7 @@
  "voice": "AI-generated (ElevenLabs text-to-speech)",
  "voice_id": "cjVigY5qzO86Huf0OWal",
  "model_id": "eleven_multilingual_v2",
- "built": "2026-10-04T02:16:29Z",
+ "built": "2026-10-04T03:50:26Z",
  "clips": {
   "01": {
    "file": "01.mp3",
@@ -18,21 +18,27 @@
   },
   "03": {
    "file": "03.mp3",
-   "hash": "596d673694beef60",
-   "seconds": 8.3,
-   "text": "Now the farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere."
+   "hash": "7318bcd0f77bb0c5",
+   "seconds": 10.5,
+   "text": "The app shows a printed card with a box for each leaf. The farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere."
+  },
+  "cherry": {
+   "file": "cherry.mp3",
+   "hash": "977d3fdcbc0ffb8d",
+   "seconds": 11.9,
+   "text": "She can add one more photo: a handful of coffee cherry. A simple colour check gives it a band: A, B or C. This is a prototype, not a trained model, and it never gives a price."
   },
   "04": {
    "file": "04.mp3",
-   "hash": "f102afc00c4940db",
-   "seconds": 6.2,
-   "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed."
+   "hash": "91a4d5427b7c2867",
+   "seconds": 15.2,
+   "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed. Each question can also be played in Gikuyu, from recorded clips. Those clips are not recorded yet, so the app shows the question in Kiswahili."
   },
   "05": {
    "file": "05.mp3",
-   "hash": "e0c4a48b904dc04f",
-   "seconds": 11.7,
-   "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do."
+   "hash": "c50b246e84ba5ff0",
+   "seconds": 18.9,
+   "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do. It also shows the cherry band, next to what the cooperative's buyers paid on their last three tickets. In this demo those tickets are made up."
   },
   "06": {
    "file": "06.mp3",

@@ -6,7 +6,9 @@ import { SIM } from "../sim";
 const BASE = import.meta.env.BASE_URL;
 
 /** Set by App: the two things a tap cannot do. */
-export const simHooks: { addPhoto?: (b: Blob) => Promise<void>; reset?: () => Promise<void> } = {};
+export const simHooks: {
+  addPhoto?: (b: Blob) => Promise<void>; addCherry?: (b: Blob) => Promise<void>; reset?: () => Promise<void>;
+} = {};
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const $ = (sel: string) => document.querySelector<HTMLElement>(sel);
@@ -80,20 +82,34 @@ const STEPS: Record<string, () => Promise<void>> = {
   },
   async capture() {
     if ($(".btn.cta")) await tap(".btn.cta");
+    await show(".guide", 1800); // the printed capture card: one leaf per box
     for (const n of ["rust-1", "rust-2", "rust-3"]) await photo(n);
     await wait(700);
   },
+  // harvest slot: the optional cherry photo, graded by colour only (a real sample photo of ripe cherry on white)
+  async cherry() {
+    await show(".cherry-card", 2200);
+    await until(() => simHooks.addCherry);
+    await simHooks.addCherry!(await (await fetch(`${BASE}sim/cherry.jpg`)).blob());
+    await show(".cherry-row", 2200);
+  },
   async questions() {
     await tap(".actionbar .btn");
+    // phrase-locked Gikuyu: the prompt plays a recorded clip if there is one, then shows the question in Kiswahili
+    await tap(".ki-play");
+    if ($(".ki-sw")) await show(".ki-sw", 2000);
     await answer(1, 1, 1); // Block B, spots spreading, not sprayed
   },
   async result() {
     await tap(".actionbar .btn");
     await until(() => $(".result-hero"));
     await wait(1800);
+    await show(".pictos", 1600);
     await show(".heatmaps", 1800);
     await show(".advice.dont", 2200);
     await show(".causes", 2200);
+    await show(".rule-note", 2200);
+    await show(".card.harvest", 3200);
   },
   async kiswahili() {
     await tap(all(".lang button")[0]);
