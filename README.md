@@ -152,7 +152,13 @@ the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play al
   tickets), and anyone with the link can press Play.
 - Locally: start the server and the app (`npm run dev`), then open <http://localhost:8000/simulation>. The page embeds
   the app from `APP_URL` (default `http://localhost:5173`), which must be in the server's `APP_ORIGIN`.
-- To record it as a video (Microsoft Edge headless, about 2.5 minutes, written to `recordings/`):
+- **Narration.** Each step has a short spoken explanation. The text is fixed and hand-written
+  (`server/narration.json`); the voice is **AI-generated** (ElevenLabs text-to-speech) at build time and committed as
+  MP3 files in `server/static/narration/`. The page only plays those files, and the listener can switch narration off.
+  To change the text, edit the JSON and run `python scripts/build_narration.py` with `ELEVENLABS_API_KEY` in `.env`
+  (only changed lines are regenerated; a server test fails if the clips are stale).
+- To record it as a video (Microsoft Edge headless, about 3 minutes with narration, written to `recordings/`; the MP4
+  with sound needs ffmpeg on `PATH` or `FFMPEG=<path>`):
   ```bash
   npm install --no-save --prefix scripts playwright-core
   npx --prefix scripts playwright-core install ffmpeg
@@ -234,6 +240,7 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
 | Agronomy text (actions, do-nots, causes, alert templates) | **Draft, not reviewed by an agronomist** (`review_status` in `answers.json`) |
 | Kiswahili text | **Machine-drafted, needs native speaker review** |
 | Kiswahili audio | **Machine-generated** (Meta MMS-TTS, **CC-BY-NC-4.0**, non-commercial: replace before deployment); not reviewed by a native speaker |
+| Simulation narration (English) | Fixed hand-written script, **AI-generated voice** (ElevenLabs text-to-speech, built once); labelled on the page |
 | Gikuyu | Not included (stretch goal; would need a human speaker) |
 
 Datasets, licences and what they do not cover: [DATA.md](DATA.md). Build log and decisions: [PROGRESS.md](PROGRESS.md).

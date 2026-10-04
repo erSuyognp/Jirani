@@ -12,6 +12,10 @@
   .panel { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:14px; min-width:0; }
   .controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
   .controls .btn { min-height:42px; padding:6px 14px; font-size:15px; }
+  .voice { display:flex; align-items:center; gap:8px; margin:0 0 12px; font-size:14px; font-weight:600; color:var(--ink-2); cursor:pointer; }
+  .voice input { width:20px; height:20px; accent-color:var(--brand); }
+  .voice .chip { font-weight:700; }
+  .voice.off { display:none; }
   .steps { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; max-height:calc(100vh - 250px); overflow:auto; }
   .steps li { display:flex; gap:10px; padding:7px 8px; border-radius:10px; font-size:14.5px; color:var(--muted); cursor:pointer; }
   .steps li:hover { background:#f2f5f8; }
@@ -39,6 +43,14 @@
   .now h2 { font-size:19px; line-height:1.25; }
   .now p { font-size:14.5px; color:var(--ink-2); }
   .err { color:var(--bad); font-size:13px; }
+  /* wide screens: everything fits the window exactly, so nothing (such as the dashboard jumping to a section) can scroll the page */
+  @media (min-width:1181px) {
+    body { height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+    .stage { flex:1; min-height:0; grid-template-rows:minmax(0,1fr); align-items:stretch; }
+    .stage > section { display:flex; flex-direction:column; min-height:0; }
+    .phone, .dash { flex:1; height:auto; min-height:0; }
+    .steps { flex:1; max-height:none; min-height:0; }
+  }
   @media (max-width:1180px) { .stage { grid-template-columns:minmax(0,1fr); } .phone { max-width:410px; margin:0 auto; height:760px; } .dash { height:760px; } .steps { max-height:none; } }
   @media (prefers-reduced-motion:reduce) { .spinner { animation:none; } }
 {% endblock %}
@@ -48,7 +60,7 @@
   <span class="tag">Simulation: the whole flow in one screen</span>
   <div class="links"><a href="/dashboard">Dashboard</a><a href="/">About Jirani</a></div>
 </div></header>
-<div class="what">Simulated: the farmer's taps, the sample leaf photos, the neighbours' reports and the officer's clicks. Real: the app, the model running in this browser tab, the server rules and the dashboard.</div>
+<div class="what">Simulated: the farmer's taps, the sample leaf photos, the neighbours' reports and the officer's clicks. Real: the app, the model running in this browser tab, the server rules and the dashboard. The spoken explanation is a pre-recorded AI voice reading a fixed script.</div>
 
 <div class="now" style="margin-top:14px">
   <span class="n" id="now-n">{{ icon("leaf", 20) }}</span>
@@ -63,6 +75,7 @@
       <button class="btn outline" id="next">Next step</button>
       <button class="btn outline" id="stop" disabled>Pause</button>
     </div>
+    <label class="voice off" id="voice">{{ icon("volume", 18) }}<input type="checkbox" id="voice-on" checked> Narration <span class="chip syn">AI-generated voice</span></label>
     <ol class="steps" id="steps"></ol>
   </section>
 
@@ -156,6 +169,29 @@
       run: () => phone("refusal") },
   ];
 
+  // ---- spoken explanation: pre-recorded clips, one per step (server/narration.json, AI-generated voice) ----
+  let clips = null, speaking = null;
+  window.__narration = []; // when each clip started, for scripts/record_simulation.cjs
+  fetch("/static/narration/manifest.json").then((r) => (r.ok ? r.json() : null)).then((m) => {
+    if (!m || !m.clips) return;
+    clips = m.clips;
+    document.getElementById("voice").classList.remove("off");
+  }).catch(() => undefined);
+  function hush() { if (speaking) { speaking.pause(); speaking = null; } }
+  /** Plays one clip and resolves when it ends (at once when narration is off or missing). */
+  function say(id) {
+    hush();
+    const clip = clips && document.getElementById("voice-on").checked ? clips[id] : null;
+    if (!clip) return Promise.resolve();
+    return new Promise((resolve) => {
+      const a = new Audio(`/static/narration/${clip.file}`);
+      speaking = a;
+      a.onended = a.onerror = a.onpause = () => resolve();
+      a.play().then(() => window.__narration.push({ id, file: clip.file, at: Date.now() })).catch(() => resolve());
+    });
+  }
+  const clipId = (i) => String(i + 1).padStart(2, "0");
+
   const list = document.getElementById("steps");
   STEPS.forEach((s, i) => {
     const li = document.createElement("li");
@@ -174,7 +210,9 @@
       document.getElementById("now-n").textContent = at + 1;
       document.getElementById("now-t").textContent = s.t;
       document.getElementById("now-d").textContent = failNote || s.d;
-      list.children[at].scrollIntoView({ block: "nearest" });
+      // keep the current step visible inside the list without scrolling the page
+      const li = list.children[at], top = li.offsetTop - list.offsetTop;
+      if (top < list.scrollTop || top + li.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top - 8;
     }
     btn.play.disabled = btn.next.disabled = busy || at >= STEPS.length;
     btn.stop.disabled = !playing;
@@ -187,8 +225,9 @@
     const li = list.children[at];
     li.classList.remove("done", "fail");
     let ok = true;
-    try { await STEPS[at].run(); li.classList.add("done"); }
-    catch (e) { ok = false; failNote = `This step did not finish: ${e.message}`; li.classList.add("fail"); }
+    const spoken = say(clipId(at)); // the step waits for its explanation to finish
+    try { await STEPS[at].run(); await spoken; li.classList.add("done"); }
+    catch (e) { ok = false; hush(); failNote = `This step did not finish: ${e.message}`; li.classList.add("fail"); }
     busy = false;
     if (ok) at++;
     if (at >= STEPS.length) {
@@ -196,8 +235,10 @@
       document.getElementById("now-n").textContent = "✓";
       document.getElementById("now-t").textContent = "End of the simulation";
       document.getElementById("now-d").textContent = "From three leaves to a diagnosis, a message for the basic phone, a neighbour alert, an answer from the officer and a planned visit. Press Play to run it again.";
-      at = 0; playing = false; document.body.dataset.done = "1";
-      btn.play.disabled = btn.next.disabled = false; btn.stop.disabled = true;
+      at = 0; playing = false; btn.stop.disabled = true;
+      await say("end");
+      document.body.dataset.done = "1";
+      btn.play.disabled = btn.next.disabled = false;
       return false;
     }
     mark();
@@ -211,5 +252,6 @@
     if (!document.body.dataset.done) mark();
   });
   btn.stop.addEventListener("click", () => { playing = false; btn.stop.disabled = true; });
+  document.getElementById("voice-on").addEventListener("change", (e) => { if (!e.target.checked) hush(); });
 </script>
 {% endblock %}

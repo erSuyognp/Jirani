@@ -239,6 +239,14 @@ def test_simulation_page_and_helpers(client):
     c, main = client
     page = c.get("/simulation")
     assert page.status_code == 200 and "Simulated:" in page.text and "?sim=1" in page.text
+    # the spoken explanation: one pre-recorded clip per step plus the closing line, same text as server/narration.json
+    lines = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "narration.json"), encoding="utf8"))["lines"]
+    manifest = c.get("/static/narration/manifest.json").json()
+    assert [x["id"] for x in lines] == [f"{i:02d}" for i in range(1, 16)] + ["end"] == list(manifest["clips"])
+    for x in lines:
+        clip = manifest["clips"][x["id"]]
+        assert clip["text"] == x["text"], f"narration clip {x['id']} is stale: run scripts/build_narration.py"
+        assert c.get(f"/static/narration/{clip['file']}").headers["content-type"] == "audio/mpeg"
     c.post("/api/reports", json={**pkt(1, "OND-0017", sev=3), "synthetic": True})
     r = c.post("/simulation/neighbours").json()
     assert r["accepted"] == 2 and r["alerts"] and r["alerts"][0]["change"] == "created"

@@ -1,0 +1,104 @@
+{
+ "voice": "AI-generated (ElevenLabs text-to-speech)",
+ "voice_id": "cjVigY5qzO86Huf0OWal",
+ "model_id": "eleven_multilingual_v2",
+ "built": "2026-10-04T02:16:29Z",
+ "clips": {
+  "01": {
+   "file": "01.mp3",
+   "hash": "13f126532b80298d",
+   "seconds": 13.0,
+   "text": "This is Jirani. It helps a coffee farmer find out what is wrong with her trees, using a phone with no internet. On the left is the farmer's phone. On the right is the cooperative's dashboard. We start with clean demo data."
+  },
+  "02": {
+   "file": "02.mp3",
+   "hash": "939ea7132717778d",
+   "seconds": 7.6,
+   "text": "First, the app checks the photo itself. This picture has no leaf in it, so the app refuses it and asks for another one."
+  },
+  "03": {
+   "file": "03.mp3",
+   "hash": "596d673694beef60",
+   "seconds": 8.3,
+   "text": "Now the farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere."
+  },
+  "04": {
+   "file": "04.mp3",
+   "hash": "f102afc00c4940db",
+   "seconds": 6.2,
+   "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed."
+  },
+  "05": {
+   "file": "05.mp3",
+   "hash": "e0c4a48b904dc04f",
+   "seconds": 11.7,
+   "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do."
+  },
+  "06": {
+   "file": "06.mp3",
+   "hash": "76b67eb9d7f787c4",
+   "seconds": 6.4,
+   "text": "The same card is available in Kiswahili. Every sentence comes from a fixed list. Nothing is made up by the machine."
+  },
+  "07": {
+   "file": "07.mp3",
+   "hash": "513edb9db99945d5",
+   "seconds": 8.2,
+   "text": "The farmer's own phone is a basic phone. So the result becomes one short text message, which she sends herself. It can also be played as audio."
+  },
+  "08": {
+   "file": "08.mp3",
+   "hash": "1d39ad934c804bcf",
+   "seconds": 7.3,
+   "text": "If she wants advice, she can send the three leaf photos to the extension officer. This is her choice. It is off unless she turns it on."
+  },
+  "09": {
+   "file": "09.mp3",
+   "hash": "ea0294b7d0a5ea42",
+   "seconds": 9.4,
+   "text": "When there is signal, she presses Send. The screen shows exactly what leaves the phone. On the dashboard, her report appears, together with her photos and a visit ticket."
+  },
+  "10": {
+   "file": "10.mp3",
+   "hash": "508eeefca198fcb4",
+   "seconds": 7.6,
+   "text": "Two neighbours now report the same disease. Three farms close together within two weeks is a warning sign, so the system drafts an alert."
+  },
+  "11": {
+   "file": "11.mp3",
+   "hash": "2db7c2d8e36fc627",
+   "seconds": 10.4,
+   "text": "The alert is not sent by the machine. An officer reads it and approves it. Then messages for the nearby farms are written to the outbox. In this demo they are not really sent."
+  },
+  "12": {
+   "file": "12.mp3",
+   "hash": "6b98077c5a20002d",
+   "seconds": 6.6,
+   "text": "The officer looks at the farmer's photos and replies from a fixed list. Here the answer is leaf rust, high."
+  },
+  "13": {
+   "file": "13.mp3",
+   "hash": "385ca67b104912d4",
+   "seconds": 8.6,
+   "text": "The visit queue shows where the officer should go first. The most serious blocks are at the top, and numbered on the map. The officer confirms a date for this farm."
+  },
+  "14": {
+   "file": "14.mp3",
+   "hash": "7b93f2632802f5d3",
+   "seconds": 7.3,
+   "text": "The farmer syncs again. Now her phone shows when the officer will come, what to do until then, and the officer's reply."
+  },
+  "15": {
+   "file": "15.mp3",
+   "hash": "74cf9ee54b0eff4a",
+   "seconds": 7.0,
+   "text": "Last, three leaves that do not agree. The app does not guess. It says: not sure, ask a person, and do not spray."
+  },
+  "end": {
+   "file": "end.mp3",
+   "hash": "b5ca2a19d44f8fff",
+   "seconds": 8.3,
+   "text": "That is Jirani. Diagnose, track, warn. The data in this demo is synthetic, and the advice is a draft that still needs expert review."
+  }
+ }
+}

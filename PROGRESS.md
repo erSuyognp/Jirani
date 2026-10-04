@@ -194,6 +194,14 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Not checked: the simulation on the live sites (needs a push; Vercel must serve the new app build), other browsers than Edge/Chromium, the page on a phone-width screen.
 - Limits: playing the simulation wipes the server's demo data and needs no login; in Safari and Firefox the embedded app's storage rules may differ; a `.webm` may need converting to `.mp4` for some video editors.
 
+### Narration for the simulation (2026-10-03)
+- 16 fixed lines (`server/narration.json`: one per step and a closing line), written in plain language, turned into MP3 clips by `scripts/build_narration.py` with ElevenLabs text-to-speech (model `eleven_multilingual_v2`, the stock voice the user's ElevenLabs agent is configured with). 2,277 characters, 2 min 14 s, 2.1 MB in `server/static/narration/`.
+- The API key is read from `.env` (gitignored) at build time only. It is not in the repo, the server or the page. The ElevenLabs agent itself is not used: a live voice agent would be a language model answering at runtime, which the project says it does not have.
+- Page: narration plays with each step and the step waits for it; a "Narration" switch turns it off; the page banner and the switch say "AI-generated voice". Without the clips the page works silently.
+- Recorder: logs when each clip starts and, with ffmpeg, muxes the clips onto the picture as `recordings/jirani-simulation.mp4` (H.264 + AAC).
+- Checked: full narrated run in headless Edge against the production build of the app, all 16 clips played; MP4 is 1920x1080, 2 min 58 s, with sound (mean -25 dB); frames checked. On wide screens the page now fits the window exactly, so the dashboard jumping to a section no longer scrolls the page. Server tests 24/24 include a check that the clips match the script.
+- Not checked: listening to the clips (I cannot hear them), so pronunciation and pacing are unreviewed; narration on the live site.
+
 ### Waiting on the user
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
   1. Open https://jirani-eosin.vercel.app online and wait for "Ready to work without internet".

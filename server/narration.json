@@ -1,0 +1,23 @@
+{
+  "note": "Spoken explanation for the /simulation page: one clip per step, plus a closing line. The text is written by hand and fixed; scripts/build_narration.py turns it into MP3 files with ElevenLabs text-to-speech at build time (AI-generated voice). Nothing is generated while the page runs.",
+  "voice_id": "cjVigY5qzO86Huf0OWal",
+  "model_id": "eleven_multilingual_v2",
+  "lines": [
+    { "id": "01", "text": "This is Jirani. It helps a coffee farmer find out what is wrong with her trees, using a phone with no internet. On the left is the farmer's phone. On the right is the cooperative's dashboard. We start with clean demo data." },
+    { "id": "02", "text": "First, the app checks the photo itself. This picture has no leaf in it, so the app refuses it and asks for another one." },
+    { "id": "03", "text": "Now the farmer photographs three leaves from one block. A small model on the phone checks each leaf. Nothing is sent anywhere." },
+    { "id": "04", "text": "Then three short questions, answered with taps. Which block, what has changed, and has anyone sprayed." },
+    { "id": "05", "text": "Here is the result. Leaf rust, with high confidence. It is worse than two weeks ago. The coloured areas show where the model looked. The card gives one thing to do this week, and one thing not to do." },
+    { "id": "06", "text": "The same card is available in Kiswahili. Every sentence comes from a fixed list. Nothing is made up by the machine." },
+    { "id": "07", "text": "The farmer's own phone is a basic phone. So the result becomes one short text message, which she sends herself. It can also be played as audio." },
+    { "id": "08", "text": "If she wants advice, she can send the three leaf photos to the extension officer. This is her choice. It is off unless she turns it on." },
+    { "id": "09", "text": "When there is signal, she presses Send. The screen shows exactly what leaves the phone. On the dashboard, her report appears, together with her photos and a visit ticket." },
+    { "id": "10", "text": "Two neighbours now report the same disease. Three farms close together within two weeks is a warning sign, so the system drafts an alert." },
+    { "id": "11", "text": "The alert is not sent by the machine. An officer reads it and approves it. Then messages for the nearby farms are written to the outbox. In this demo they are not really sent." },
+    { "id": "12", "text": "The officer looks at the farmer's photos and replies from a fixed list. Here the answer is leaf rust, high." },
+    { "id": "13", "text": "The visit queue shows where the officer should go first. The most serious blocks are at the top, and numbered on the map. The officer confirms a date for this farm." },
+    { "id": "14", "text": "The farmer syncs again. Now her phone shows when the officer will come, what to do until then, and the officer's reply." },
+    { "id": "15", "text": "Last, three leaves that do not agree. The app does not guess. It says: not sure, ask a person, and do not spray." },
+    { "id": "end", "text": "That is Jirani. Diagnose, track, warn. The data in this demo is synthetic, and the advice is a draft that still needs expert review." }
+  ]
+}
