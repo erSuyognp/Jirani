@@ -28,8 +28,8 @@ export default defineConfig(({ command }) => ({
         icons: [{ src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }],
       },
       workbox: {
-        // Precache everything the app needs offline: shell, model, ort wasm, content, audio, context.
-        globPatterns: ["**/*.{js,mjs,css,html,svg,png,json,onnx,wasm,mp3,ogg,opus,webm}"],
+        // Precache everything the app needs offline: shell, model, ort wasm, content, audio, context, capture card.
+        globPatterns: ["**/*.{js,mjs,css,html,svg,png,json,onnx,wasm,mp3,ogg,opus,webm,m4a,pdf}"],
         maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
         navigateFallback: "index.html",
         // Activate a new version as soon as it is installed. Waiting for the page to send SKIP_WAITING

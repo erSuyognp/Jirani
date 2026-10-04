@@ -34,7 +34,21 @@ export function buildSms(card: Card, block: string, date: Date, A: Answers, lang
   if (body.length > CONFIG.sms.maxChars || !isGsm7(body)) {
     throw new Error(`SMS not single-segment GSM-7 (${body.length} chars): ${body}`);
   }
-  return body;
+  return body + harvestFragment(card, body.length, A, lang);
+}
+
+/**
+ * Cherry band for the SMS, only when a band exists. The message must stay one segment, so the ticket range is
+ * dropped first, then the band itself; the card and the audio always carry both.
+ */
+function harvestFragment(card: Card, used: number, A: Answers, lang: Lang): string {
+  const { band, range } = card.harvestInput;
+  if (!band) return "";
+  const options = [
+    range ? fill(pick(A.sms.harvest_tickets, lang, "sms.harvest_tickets"), { band, low: range.low, high: range.high, unit: range.unit }) : "",
+    fill(pick(A.sms.harvest, lang, "sms.harvest"), { band }),
+  ];
+  return options.find((x) => x && used + x.length <= CONFIG.sms.maxChars && isGsm7(x)) ?? "";
 }
 
 /** Key into answers.json `action` for an officer diagnosis (same lookup as the card). */

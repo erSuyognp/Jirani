@@ -45,5 +45,23 @@ export const CONFIG = {
     sprayedRecently: { score: 0.45 },
   },
 
+  // Cherry band (optional fourth photo). PROTOTYPE colour-and-defect heuristic, not a trained model. DRAFT values.
+  cherry: {
+    fruitMinFraction: 0.05,     // cherry-coloured share of the photo below this = no cherry seen, no grade
+    cardMinFraction: 0.15,      // white-card share of the photo below this = not on the card, no grade
+    cardValMin: 0.6,            // an unsaturated pixel at least this bright counts as card
+    satMin: 0.3,                // below this a pixel is card or background, not fruit
+    darkValMax: 0.22,           // fruit darker than this counts as a defect (overripe, dried, black)
+    ripeHueMin: 335,            // ripe red wraps around 0 degrees: hue >= 335 or <= 12
+    ripeHueMax: 12,
+    unripeHueMin: 45,           // yellow-green through green counts as a defect (unripe)
+    unripeHueMax: 170,
+    bandA: { ripeMin: 0.8, defectMax: 0.08 },
+    bandB: { ripeMin: 0.6, defectMax: 0.2 },   // anything else that has enough fruit is band C
+  },
+
+  // Buyer tickets shown next to the band: the last N cooperative tickets of that band, as a range.
+  harvest: { ticketCount: 3 },
+
   sms: { maxChars: 160 },
 };

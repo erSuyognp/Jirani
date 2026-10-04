@@ -1,0 +1,18 @@
+{
+ "review_status": "PLACEHOLDER. No Gikuyu audio has been recorded yet. Replace with human recordings before judging.",
+ "language": "ki (Gikuyu)",
+ "placeholder": true,
+ "how_to_record": "A Gikuyu speaker records each prompt below as a short clip, saves it in this folder under the file name given, and sets recorded to true. When every clip is recorded, set placeholder to false. Do not machine-generate these clips and do not machine-translate the text: the meaning lines are the script to speak from.",
+ "why_phrase_locked": "Gikuyu is limited to this fixed list of recorded phrases. Text or speech generated for it would not be checked by anyone on the team and could be wrong.",
+ "format": "mp3 or m4a, mono, a few seconds each",
+ "clips": {
+  "prompt.block": { "file": "prompt_block.mp3", "recorded": false, "meaning_en": "Which block are these leaves from?", "meaning_sw": "Majani haya yametoka kitalu gani?" },
+  "prompt.changed": { "file": "prompt_changed.mp3", "recorded": false, "meaning_en": "What has changed since the last moon?", "meaning_sw": "Nini kimebadilika tangu mwezi uliopita?" },
+  "prompt.sprayed": { "file": "prompt_sprayed.mp3", "recorded": false, "meaning_en": "Did anyone spray this block?", "meaning_sw": "Kuna mtu amenyunyizia kitalu hiki?" },
+  "confirm.yes": { "file": "confirm_yes.mp3", "recorded": false, "meaning_en": "Yes", "meaning_sw": "Ndiyo" },
+  "confirm.no": { "file": "confirm_no.mp3", "recorded": false, "meaning_en": "No", "meaning_sw": "Hapana" },
+  "confirm.not_sure": { "file": "confirm_not_sure.mp3", "recorded": false, "meaning_en": "Not sure", "meaning_sw": "Sina uhakika" },
+  "confirm.upper_block": { "file": "confirm_upper_block.mp3", "recorded": false, "meaning_en": "Upper block", "meaning_sw": "Kitalu cha juu" },
+  "confirm.lower_block": { "file": "confirm_lower_block.mp3", "recorded": false, "meaning_en": "Lower block", "meaning_sw": "Kitalu cha chini" }
+ }
+}

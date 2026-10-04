@@ -6,20 +6,35 @@ import { Share } from "@capacitor/share";
 import type { Card } from "../logic/card";
 
 const BASE = import.meta.env.BASE_URL;
+
+/** The amounts a recorded ticket clip says. A clip is played only when the card shows the same range. */
+export type SpokenRanges = Record<string, { low: number; high: number; unit: string }>;
+
 let manifest: Record<string, string> | null = null;
+let spoken: SpokenRanges = {};
 
 async function loadManifest(): Promise<Record<string, string>> {
   if (manifest) return manifest;
   try {
-    manifest = (await (await fetch(`${BASE}audio/sw/manifest.json`)).json()).clips ?? {};
+    const m = await (await fetch(`${BASE}audio/sw/manifest.json`)).json();
+    manifest = m.clips ?? {};
+    spoken = m.spoken ?? {};
   } catch {
     manifest = {};
   }
   return manifest!;
 }
 
-/** Clip keys for a card, in order: stress, severity, trend, action, do-not. */
-export function cardClipKeys(card: Card): string[] {
+export async function spokenRanges(): Promise<SpokenRanges> {
+  await loadManifest();
+  return spoken;
+}
+
+/**
+ * Clip keys for a card, in order: stress, severity, trend, action, do-not, then the cherry band when there is one.
+ * The ticket-range clip is added only when its recorded amounts equal the range on the card.
+ */
+export function cardClipKeys(card: Card, ranges: SpokenRanges = {}): string[] {
   const keys = [`stress.${card.stressKey}`];
   if (card.confident) {
     keys.push(`severity.${card.severityKey}`, `trend.${card.trendKey ?? "first"}`);
@@ -27,6 +42,12 @@ export function cardClipKeys(card: Card): string[] {
     keys.push("next_step.ask_person");
   }
   keys.push(`action.${card.actionKey}`, `do_not.${card.stressKey}`);
+  const { band, range } = card.harvestInput;
+  if (band) {
+    keys.push(`harvest.band.${band}`);
+    const said = ranges[`harvest.tickets.${band}`];
+    if (range && said && said.low === range.low && said.high === range.high && said.unit === range.unit) keys.push(`harvest.tickets.${band}`);
+  }
   return keys;
 }
 

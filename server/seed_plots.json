@@ -3,6 +3,68 @@
  "note": "SYNTHETIC demo registry. Fictional Ondera Coffee Cooperative. Random points in a real coffee-growing area; not real farms.",
  "area": "Coffee-growing area near Wamagana, Nyeri County, Kenya",
  "cooperative": "Ondera Coffee Cooperative (fictional)",
+ "buyer_tickets": {
+  "synthetic": true,
+  "note": "SYNTHETIC buyer tickets of the fictional Ondera factory. Demo numbers, not market prices.",
+  "factory": "Ondera factory (fictional)",
+  "unit": "USD/50kg",
+  "tickets": [
+   {
+    "id": "BT-0001",
+    "date": "2026-08-22",
+    "band": "A",
+    "price": 355
+   },
+   {
+    "id": "BT-0002",
+    "date": "2026-08-22",
+    "band": "B",
+    "price": 310
+   },
+   {
+    "id": "BT-0003",
+    "date": "2026-08-22",
+    "band": "C",
+    "price": 255
+   },
+   {
+    "id": "BT-0004",
+    "date": "2026-09-05",
+    "band": "A",
+    "price": 390
+   },
+   {
+    "id": "BT-0005",
+    "date": "2026-09-05",
+    "band": "B",
+    "price": 340
+   },
+   {
+    "id": "BT-0006",
+    "date": "2026-09-05",
+    "band": "C",
+    "price": 285
+   },
+   {
+    "id": "BT-0007",
+    "date": "2026-09-19",
+    "band": "A",
+    "price": 370
+   },
+   {
+    "id": "BT-0008",
+    "date": "2026-09-19",
+    "band": "B",
+    "price": 325
+   },
+   {
+    "id": "BT-0009",
+    "date": "2026-09-19",
+    "band": "C",
+    "price": 270
+   }
+  ]
+ },
  "plots": [
   {
    "plot_id": "OND-0001",

@@ -1,4 +1,5 @@
 // One photo: decode -> quality gate -> leaf crop -> inference -> CAM overlay.
+import { type CherryGrade, gradeCherry } from "../capture/cherry";
 import { decodePhoto, leafCanvas } from "../capture/image";
 import { checkQuality, type QualityResult } from "../capture/quality";
 import type { LeafResult } from "../logic/types";
@@ -25,6 +26,16 @@ export async function processPhoto(file: Blob): Promise<Photo> {
   bmp.close();
   const result = await runLeaf(leaf);
   return { file, thumbUrl, quality, leaf, result };
+}
+
+/** The optional fourth photo: a handful of cherry in the cherry box. Graded by colour only; no model runs on it. */
+export interface CherryPhoto { thumbUrl: string; grade: CherryGrade }
+
+export async function processCherry(file: Blob): Promise<CherryPhoto> {
+  const bmp = await decodePhoto(file);
+  const grade = gradeCherry(bmp);
+  bmp.close();
+  return { thumbUrl: URL.createObjectURL(file), grade };
 }
 
 export function heatmapFor(p: Photo, head: StressHead, cls: number, shape: number[]): string | null {

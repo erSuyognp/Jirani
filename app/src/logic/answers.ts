@@ -14,6 +14,7 @@ export interface Answers {
   do_not: Record<string, Text>;
   next_step: Record<string, Text>;
   cause: Record<string, { evidence?: Text; confirm?: Text } & Partial<Text>>;
+  harvest: Record<string, Text>;
   card: Record<string, Text>;
   officer: Record<string, Text>;
   visit: Record<string, Text>;
@@ -24,6 +25,8 @@ export interface Answers {
     officer_visit: Text;
     officer_retake: Text;
     visit: Text;
+    harvest: Text;
+    harvest_tickets: Text;
     slot: Record<string, Text>;
     months: Record<Lang, string[]>;
     stress: Record<string, Text>;

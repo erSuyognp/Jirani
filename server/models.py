@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS tickets (
   source TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',   -- open -> scheduled -> done | cancelled
   visit_date TEXT, slot TEXT, officer TEXT, created_at TEXT NOT NULL, updated_at TEXT
 );
+-- Buyer tickets: what buyers paid per cherry band at the factory. SYNTHETIC in the demo (from the seed file).
+-- Not to be confused with visit tickets above.
+CREATE TABLE IF NOT EXISTS buyer_tickets (
+  id TEXT PRIMARY KEY, sold_on TEXT NOT NULL, band TEXT NOT NULL, price REAL NOT NULL, unit TEXT NOT NULL,
+  synthetic INTEGER NOT NULL DEFAULT 1
+);
 -- "Ask the officer": leaf photos a farmer chose to send with one report, and the officer's fixed-list reply.
 CREATE TABLE IF NOT EXISTS consults (
   id TEXT PRIMARY KEY, plot_id TEXT NOT NULL, block TEXT NOT NULL, images_json TEXT NOT NULL,
@@ -77,11 +83,19 @@ def seed_if_empty(con, seed_path):
 
 def sync_registry(con, seed_path):
     """The seed file is the registry: when it changes (plots moved or added), bring an existing database in line."""
-    plots = json.load(open(seed_path, encoding="utf8"))["plots"]
+    seed = json.load(open(seed_path, encoding="utf8"))
+    plots = seed["plots"]
     con.executemany(
         """INSERT INTO plots VALUES (?,?,?,?,NULL)
            ON CONFLICT(plot_id) DO UPDATE SET lat=excluded.lat, lon=excluded.lon, blocks_json=excluded.blocks_json""",
         [(p["plot_id"], p["lat"], p["lon"], json.dumps(p["blocks"])) for p in plots])
+    bt = seed.get("buyer_tickets") or {}
+    con.executemany(
+        """INSERT INTO buyer_tickets VALUES (?,?,?,?,?,?)
+           ON CONFLICT(id) DO UPDATE SET sold_on=excluded.sold_on, band=excluded.band, price=excluded.price,
+             unit=excluded.unit, synthetic=excluded.synthetic""",
+        [(t["id"], t["date"], t["band"], t["price"], bt["unit"], 1 if bt.get("synthetic", True) else 0)
+         for t in bt.get("tickets", [])])
     con.commit()
 
 

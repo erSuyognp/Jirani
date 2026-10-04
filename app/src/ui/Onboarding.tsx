@@ -15,6 +15,7 @@ export function Welcome({ lang, onStart }: { lang: Lang; onStart: () => void }) 
         <div className="welcome-mark"><Logo size={52} /></div>
         <h2>{T("welcome_title")}</h2>
         <p className="lead">{T("welcome_body")}</p>
+        <p className="welcome-line">{T("welcome_line")}</p>
         <ul className="points">
           <li><span><WifiOff size={20} aria-hidden /></span>{T("welcome_point_offline")}</li>
           <li><span><Lock size={20} aria-hidden /></span>{T("welcome_point_private")}</li>

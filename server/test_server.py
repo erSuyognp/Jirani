@@ -58,9 +58,34 @@ def test_landing_page_and_dashboard_render(client):
     c, _ = client
     home = c.get("/")
     assert home.status_code == 200 and 'href="/dashboard"' in home.text
+    # the farmer app is the primary button; simulation and dashboard come after it
+    cta = home.text[home.text.index('<div class="cta">'):]
+    assert cta.index("Open the farmer app") < cta.index("Watch the simulation") < cta.index("Cooperative dashboard")
+    assert 'class="btn accent" href="/dashboard"' not in home.text
+    # product number first; the single-leaf figure and the weak spots stay visible
+    assert home.text.index("75.6% answered, 100% right") < home.text.index("Also measured") < home.text.index("90.1%")
+    for shown in ("75.9% / 72.7%", "48% / 78%", "Trained on Brazilian leaves", "Machine-drafted Kiswahili", "non-commercial",
+                  "Synthetic demo data", "Mock SMS", "generated Gikuyu would hallucinate", "on the printed card"):
+        assert shown in home.text, shown
+    assert "white paper" not in home.text
+    card = c.get("/static/capture-card.pdf")                                   # linked from step 1
+    assert card.status_code == 200 and card.content.startswith(b"%PDF") and "/static/capture-card.pdf" in home.text
     dash = c.get("/dashboard")
     assert dash.status_code == 200 and "Demo data is synthetic" in dash.text   # spec: visible banner
     assert c.get("/static/icon.svg").status_code == 200
+
+
+def test_buyer_tickets_are_seeded_and_synthetic(client):
+    """Buyer tickets come from the cooperative seed, are flagged synthetic, and survive a simulation reset."""
+    c, _ = client
+    seed = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_plots.json")))["buyer_tickets"]
+    r = c.get("/api/buyer-tickets").json()
+    assert r["synthetic"] is True and r["unit"] == seed["unit"] and len(r["tickets"]) == len(seed["tickets"]) >= 9
+    assert {t["band"] for t in r["tickets"]} == {"A", "B", "C"}
+    last_b = sorted((t for t in r["tickets"] if t["band"] == "B"), key=lambda t: t["date"])[-3:]
+    assert (min(t["price"] for t in last_b), max(t["price"] for t in last_b)) == (310, 340)
+    c.post("/simulation/reset")
+    assert len(c.get("/api/buyer-tickets").json()["tickets"]) == len(seed["tickets"])
 
 
 def test_registry_sync_moves_existing_plots(client):

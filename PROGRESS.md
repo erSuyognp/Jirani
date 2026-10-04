@@ -202,7 +202,101 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Checked: full narrated run in headless Edge against the production build of the app, all 16 clips played; MP4 is 1920x1080, 2 min 58 s, with sound (mean -25 dB); frames checked. On wide screens the page now fits the window exactly, so the dashboard jumping to a section no longer scrolls the page. Server tests 24/24 include a check that the clips match the script.
 - Not checked: listening to the clips (I cannot hear them), so pronunciation and pacing are unreviewed; narration on the live site.
 
+### Agriculture-track gaps: harvest slot, Gikuyu prompts, capture card (2026-10-03)
+Source: `JIRANI_ADD_FEATURES_PROMPT.md` (8 items). No step needed an LLM, a product name, a live SMS gateway or
+retraining, so nothing was stopped. The model, tau (0.76) and the refusal rule are untouched.
+
+**Added**
+1. **Harvest slot (cherry band + ticket range).**
+   - Optional fourth photo after the three leaves. `app/src/capture/cherry.ts` grades it A, B or C with a deterministic
+     colour-and-defect heuristic (share of ripe red, unripe green and blackened pixels on the white card). It refuses
+     (no band) when the photo is dark, shows no white card, or shows too little fruit. Thresholds in `CONFIG.cherry`.
+   - The card shows "Band B. Last coop tickets 310–340 USD/50kg. Not a price offer." plus "Prototype grade, not a
+     trained model. Confirm at the factory." and "Demo tickets are synthetic, not market prices." Without the photo:
+     "No cherry photo. No grade." With a photo that cannot be graded: "Cherry photo not clear. No grade."
+   - Buyer tickets: 9 synthetic tickets in `scripts/seed_cooperative.py` → `server/seed_plots.json` and
+     `app/public/content/plots.json` (plot coordinates unchanged). Server: `buyer_tickets` table, filled from the seed
+     at start-up, `GET /api/buyer-tickets`, kept by a simulation reset.
+   - SMS: " Band B." is appended when a band exists; " Band B, tickets 310-340 USD/50kg, no offer." is used instead
+     when it still fits 160 characters. Audio: `harvest.band.A/B/C` and `harvest.tickets.A/B/C` clips.
+   - The band is a separate slot. It never changes the diagnosis; a refusal stays a refusal (unit test).
+2. **Gikuyu, phrase-locked.** "Play prompt (Gikuyu)" on each of the three questions plays a recorded clip if there is
+   one, then shows the question in Kiswahili. Clip pack and manifest in `app/public/audio/ki/` (3 prompts, 5
+   confirmations). After a prompt was pressed, the answer's confirmation clip plays too (yes / no / not sure; upper /
+   lower block only if a block has that name). Settings carries the fixed fallback sentence, and the result card has
+   a picture row (three leaves, tick / cross / question mark, cherry band) so that sentence is true.
+3. **Printable capture card.** `scripts/build_capture_card.py` → `app/public/capture-card.pdf` and
+   `server/static/capture-card.pdf` (A4, 3 KB, no PDF library). The capture screen shows the card as a diagram with the
+   current box highlighted and links to the PDF. "White paper" is gone from the app, the officer's "retake" texts and
+   the project page.
+4. **Rule line in the causes slot**, both languages: "Rain and soil are cached estimates, not a second model. They
+   never override a low-confidence leaf." Missing or stale pack: "No fresh rain or soil note."
+5. **Onboarding line** under the welcome text, both languages. No account, no permission, no login.
+6. **Project page.** Primary button "Open the farmer app" (top bar, hero, final section); simulation and dashboard
+   are secondary. Hero stat is the three-leaf rule (75.6% of 82 simulated triples answered, 100% right when it
+   answered). 90.1% moved under "Also measured" with miner recall 75.9% and cercospora recall 72.7%. PlantDoc 48% /
+   78% stays, with "about one in five such triples still gets a confident answer". Limits: Brazilian leaves,
+   machine-drafted Kiswahili until human clips land, Gikuyu placeholders, cherry prototype, synthetic plots and
+   tickets, mock SMS. The dashboard header now links the farmer app first; the dashboard is otherwise unchanged.
+7. **Audio licence note** in DATA.md ("Audio licence") and in the project-page limits. `build_audio.py --missing`
+   builds only clips whose file does not exist, so human recordings dropped in with the same names are kept.
+8. **Holdout hook.** `ml/holdout/README.md` and an empty `ml/holdout/ke/`. Nothing reads the folder.
+- README: demo order is farmer app, simulation, dashboard; features F7, F8 and the card; limits; rebuild commands.
+- **Android app.** Rebuilt (version 1.1.0, code 3) and installed on the Galaxy A14. In the app the capture-card link
+  opens the native share sheet with the PDF, because the WebView cannot show one.
+
+**Still placeholder**
+- **Gikuyu clips: none recorded.** The control is silent and only shows the Kiswahili question. The app, the project
+  page and Settings say "Gikuyu clips are placeholders. Replace with human recordings before judging." Record the
+  eight clips listed in `app/public/audio/ki/manifest.json`, set `recorded: true` on each and `placeholder: false`.
+- **Cherry band: a heuristic**, tried only on generated images (red and green discs on white). Never run on a photo
+  of real cherry.
+- **Buyer tickets: synthetic** demo numbers.
+- **Kiswahili: machine-drafted**, including the six new clips (MMS-TTS, non-commercial) and every new string.
+- **`ml/holdout/ke/`: empty.**
+
+**Decisions and deviations**
+- **The unit "USD/50kg" lives in the registry, not in `answers.json`.** The no-dosage scan flags a number followed by
+  "kg", and that check was left as it is. The sentence template is fixed; the two amounts and the unit come from the
+  cooperative's tickets.
+- **The ticket range is rarely in the SMS.** The existing message already uses 94 to 160 characters. Over every card,
+  three block names, three bands and both languages (1,278 cases, counted by the unit test): 54 carry the range, 1,155
+  the band only, 69 neither (no room). In practice only short messages such as "Not sure" get the range. The card and the audio always carry it.
+- **No fiducial detector, so no "card not seen" warning.** Each photo is one box filling the frame, so the corner
+  marks are never in the picture; a detector would warn on every photo. The quality gate is unchanged and is still
+  the only gate. The marks and the 20 mm bar are printed for a later whole-card photo.
+- **Ticket clips say fixed amounts.** They are built from the seed. `manifest.json` records the amounts, the app
+  plays a ticket clip only when they equal the range on the card, and a unit test fails when they drift.
+- **The simulation page still says "Three leaves on white paper"**, which is true of its sample photos; its
+  narration clips are tied to that script. The simulation skips the cherry photo, so its card shows "No cherry
+  photo. No grade."
+- The cherry band is not stored in history and not sent to the cooperative; the report packet is unchanged.
+
+**Checked**
+- Tests: app 38/38 (was 29), server 25/25 (was 24), typecheck clean.
+- Browser, dev build, phone width: three sample rust leaves + a generated cherry image (20 red, 4 green discs) →
+  "Band B. Last coop tickets 310–340 USD/50kg. Not a price offer." in English and Kiswahili, SMS 138 characters with
+  " Daraja B."; dark-table image → "too dark, no grade"; empty card → "no cherry found"; three mixed leaves + an
+  all-red image → "Not sure", "Do not spray", with Band A in its own slot; Gikuyu control → placeholder note and the
+  Kiswahili question; Settings notes.
+- **Offline:** production build, service worker active, preview server stopped, page reloaded: a full check rendered
+  the card with the cherry photo (Band A) and without it ("No cherry photo. No grade."). The new clips, the Gikuyu
+  manifest, `plots.json` and the PDF were served from the cache.
+- Project page at 1280 px and 375 px: button order, hero stat, tables, limits, no horizontal overflow (read from the
+  page; screenshots were not available in this session).
+- Capture card: PDF structure validated (objects, offsets, stream length) and its drawing commands redrawn as an image
+  to check the layout. **Not opened in a PDF viewer and not printed**, so the 20 mm bar is not measured on paper.
+- Galaxy A14, new APK: existing history kept; capture screen with the card diagram; the PDF link opens the share
+  sheet with `jirani-capture-card.pdf`; three gallery leaves → cherry step → questions (Gikuyu prompt shows the
+  Kiswahili line) → "Leaf rust, very low, 99%" with the picture row, the rule line and "No cherry photo. No grade."
+  (236 / 92 / 66 ms). The result was not saved.
+- **Not checked:** a cherry photo on the phone (camera or gallery); audio playback of the new clips by ear; the live
+  sites (needs a push; Vercel and Render then rebuild); the simulation page end to end after these changes.
+
 ### Waiting on the user
+- [ ] **Record the Gikuyu clips** (8 short clips, list in `app/public/audio/ki/manifest.json`), or accept the placeholder note in the demo.
+- [ ] **Print the capture card once** at 100% and measure the 20 mm bar.
+- [ ] Try the cherry photo with real cherry (or anything red on the card) before showing the band in the video.
 - [ ] **Real-phone test in airplane mode** (spec M8 acceptance):
   1. Open https://jirani-eosin.vercel.app online and wait for "Ready to work without internet".
   2. Turn on airplane mode.
@@ -218,3 +312,5 @@ JIRANI_SPEC.md (§10, M6b row, cut order, demo step 6) and README were updated t
 - Kiswahili text and audio need native speaker review; agronomy text needs agronomist review.
 - Real SMS delivery to neighbours (needs a provider with carrier registration; out of scope).
 - Out-of-distribution refusal is weak on other crops' leaves (48% single image, 78% with the 3-leaf rule). State it in the video.
+- Gikuyu clips need a human speaker; the cherry band needs real cherry photos (ideally a trained head) before it is more than a prototype.
+- A block name of 8 characters can make the longest result SMS 161 characters (the app then fails to build it). The registry only has blocks A to D, so it cannot happen in the demo; cap the name at 7 characters or shorten a template before using longer names.

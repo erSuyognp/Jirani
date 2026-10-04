@@ -40,6 +40,29 @@
   "card.footer": "card_footer.mp3",
   "prompt.block": "prompt_block.mp3",
   "prompt.changed": "prompt_changed.mp3",
-  "prompt.sprayed": "prompt_sprayed.mp3"
+  "prompt.sprayed": "prompt_sprayed.mp3",
+  "harvest.band.A": "harvest_band_A.mp3",
+  "harvest.band.B": "harvest_band_B.mp3",
+  "harvest.band.C": "harvest_band_C.mp3",
+  "harvest.tickets.A": "harvest_tickets_A.mp3",
+  "harvest.tickets.B": "harvest_tickets_B.mp3",
+  "harvest.tickets.C": "harvest_tickets_C.mp3"
+ },
+ "spoken": {
+  "harvest.tickets.A": {
+   "low": 355,
+   "high": 390,
+   "unit": "USD/50kg"
+  },
+  "harvest.tickets.B": {
+   "low": 310,
+   "high": 340,
+   "unit": "USD/50kg"
+  },
+  "harvest.tickets.C": {
+   "low": 255,
+   "high": 285,
+   "unit": "USD/50kg"
+  }
  }
 }

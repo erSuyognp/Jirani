@@ -85,6 +85,15 @@ def plots():
                                           "blocks": json.loads(r["blocks_json"])} for r in rows]}
 
 
+@app.get("/api/buyer-tickets")
+def buyer_tickets():
+    """What buyers paid per cherry band (SYNTHETIC demo tickets from the seed). Past tickets, never a price offer."""
+    rows = con.execute("SELECT * FROM buyer_tickets ORDER BY sold_on, id").fetchall()
+    return {"synthetic": all(r["synthetic"] for r in rows), "factory": (SEED.get("buyer_tickets") or {}).get("factory"),
+            "unit": rows[0]["unit"] if rows else None,
+            "tickets": [{"id": r["id"], "date": r["sold_on"], "band": r["band"], "price": r["price"]} for r in rows]}
+
+
 @app.post("/api/reports")
 def reports(payload=Body(...)):
     packets = payload if isinstance(payload, list) else [payload]
@@ -382,4 +391,5 @@ def dashboard(request: Request):
         "rule": config.OUTBREAK, "consults": consults, "n_open": sum(c["status"] == "open" for c in consults),
         "reply_stresses": REPLY_STRESSES, "queue": queue, "recent_done": recent_done,
         "n_unscheduled": sum(t["status"] == "open" for t in queue), "ticket_rule": config.TICKETS,
+        "app_url": config.APP_URL,
     })

@@ -1,10 +1,11 @@
-// The Decision Card: the seven slots from the spec, the heatmaps, and the handoff to the basic phone.
+// The Decision Card: the seven slots from the spec, the harvest slot, the heatmaps, and the handoff to the basic phone.
 import {
-  Ban, Check, CircleCheck, FileWarning, Images, MessageSquare, Satellite, ScanSearch, Search, Send, Share2, Square, Timer, TriangleAlert, UserRound, Volume2,
+  Ban, Check, Cherry, CircleCheck, CircleHelp, FileWarning, FlaskConical, Images, Info, Leaf, MessageSquare, Satellite, ScanSearch, Search, Send,
+  Share2, Square, Timer, TriangleAlert, UserRound, Volume2, X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Settings } from "../db/db";
-import { cardAudioFile, cardClipKeys, playKeys, shareOrDownload, stopAudio } from "../handoff/audio";
+import { cardAudioFile, cardClipKeys, playKeys, shareOrDownload, spokenRanges, stopAudio } from "../handoff/audio";
 import { smsUri } from "../handoff/sms";
 import type { Photo } from "../inference/pipeline";
 import type { Card } from "../logic/card";
@@ -30,12 +31,12 @@ export function ResultCard({ lang, r, card: c, sms, settings, pack, photos, ask,
   async function toggleAudio() {
     if (playing) { stopAudio(); setPlaying(false); return; }
     setPlaying(true);
-    await playKeys(cardClipKeys(c));
+    await playKeys(cardClipKeys(c, await spokenRanges()));
     setPlaying(false);
   }
   async function share() {
     try {
-      const f = await cardAudioFile(cardClipKeys(c));
+      const f = await cardAudioFile(cardClipKeys(c, await spokenRanges()));
       if (f && (await shareOrDownload(f)) === "downloaded") notify(T("audio_downloaded"), "ok");
     } catch { /* share sheet dismissed */ }
   }
@@ -52,6 +53,18 @@ export function ResultCard({ lang, r, card: c, sms, settings, pack, photos, ask,
             {c.reason && <p>{c.reason}</p>}
           </div>
         </section>
+
+        {/* Picture card: readable without the words. Three leaves (greyed when the photo was not used), then a tick
+            (no disease seen), a cross (problem found) or a question mark (not sure), then the cherry band. */}
+        <div className="pictos" role="img" aria-label={`${T("picto_label")}: ${c.stress}. ${c.harvest.text}`}>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className={`picto leaf ${photos[i]?.quality.ok ? "used" : ""}`}><Leaf size={24} aria-hidden /></span>
+          ))}
+          <span className={`picto verdict tone-${tone}`}>
+            {!c.confident ? <CircleHelp size={28} aria-hidden /> : c.stressKey === "healthy" ? <Check size={28} strokeWidth={3} aria-hidden /> : <X size={28} strokeWidth={3} aria-hidden />}
+          </span>
+          <span className={`picto band ${c.harvest.bandKey ? "has" : ""}`}><Cherry size={18} aria-hidden /> {c.harvest.bandKey ?? "–"}</span>
+        </div>
 
         <div className="stat-grid">
           <section className="card stat">
@@ -93,6 +106,17 @@ export function ResultCard({ lang, r, card: c, sms, settings, pack, photos, ask,
           </ol>
           {c.contextNote && <p className="hint"><TriangleAlert size={15} aria-hidden /> {c.contextNote}{packAge !== null && ` ${T("context_stale", { days: packAge })}`}</p>}
           {!c.contextNote && packAge !== null && <p className="hint"><Satellite size={15} aria-hidden /> {T("context_age", { days: packAge })}</p>}
+          <p className="hint rule-note"><Info size={15} aria-hidden /> {c.ruleNote}</p>
+        </section>
+
+        <section className={`card harvest ${c.harvest.bandKey ? "graded" : ""}`}>
+          <div className="label"><Cherry size={16} aria-hidden /> {T("harvest_title")}</div>
+          <p className="harvest-main">
+            {c.harvest.bandKey && <b className="band-chip">{c.harvest.bandKey}</b>}
+            <span>{c.harvest.text}{c.harvest.tickets && ` ${c.harvest.tickets}`}</span>
+          </p>
+          {c.harvest.prototype && <p className="hint"><FlaskConical size={15} aria-hidden /> {c.harvest.prototype}</p>}
+          {c.harvest.synthetic && <p className="hint"><Info size={15} aria-hidden /> {c.harvest.synthetic}</p>}
         </section>
 
         <section className={`card next ${c.nextStepKey}`}>

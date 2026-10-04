@@ -5,11 +5,12 @@ import { addObservation, allAsks, allObservations, clearAll, DEFAULT_SETTINGS, g
 import { stopAudio } from "../handoff/audio";
 import { buildSms } from "../handoff/sms";
 import { loadModel, type ModelMeta, type StressHead } from "../inference/model";
-import { heatmapFor, type Photo, processPhoto } from "../inference/pipeline";
+import { type CherryPhoto, heatmapFor, type Photo, processCherry, processPhoto } from "../inference/pipeline";
 import { aggregate } from "../logic/aggregate";
 import type { Answers } from "../logic/answers";
 import { buildCard } from "../logic/card";
 import { rankCauses } from "../logic/causes";
+import { type BuyerTickets, harvestFor } from "../logic/harvest";
 import { computeTrend } from "../logic/trend";
 import type { Ask, ContextPack, Lang, Observation, Visit } from "../logic/types";
 import { SIM, SIM_PLOT, SIM_SERVER } from "../sim";
@@ -48,12 +49,14 @@ export default function App() {
   const [model, setModel] = useState<{ meta: ModelMeta; head: StressHead } | null>(null);
   const [plots, setPlots] = useState<Plot[]>([]);
   const [pack, setPack] = useState<ContextPack | null>(null);
+  const [tickets, setTickets] = useState<BuyerTickets | null>(null); // cooperative buyer tickets (registry, synthetic in the demo)
   const [screen, setScreen] = useState<Screen>("home");
   const [online, setOnline] = useState(navigator.onLine);
   const [offlineReady, setOfflineReady] = useState(false);
   const [queued, setQueued] = useState(0);
   const [obs, setObs] = useState<Observation[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [cherry, setCherry] = useState<CherryPhoto | null>(null); // optional fourth photo
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState<CheckAnswers>({ block: "", changed: null, sprayed: null });
   const [result, setResult] = useState<Result | null>(null);
@@ -73,7 +76,9 @@ export default function App() {
     (async () => {
       try {
         await loadStrings(BASE);
-        const plotList: Plot[] = (await (await fetch(`${BASE}content/plots.json`)).json()).plots;
+        const registry = await (await fetch(`${BASE}content/plots.json`)).json();
+        const plotList: Plot[] = registry.plots;
+        setTickets(registry.buyer_tickets ?? null);
         if (SIM) await (simBoot ??= simReset(plotList)); // simulation: start from a known state every time
         const s = await getSettings();
         setS(s);
@@ -139,7 +144,7 @@ export default function App() {
     });
     setS(s);
     setObs(await allObservations());
-    setAsks([]); setVisits([]); setQueued(0); setPhotos([]); setResult(null); setAsk(false); setDialog(null);
+    setAsks([]); setVisits([]); setQueued(0); setPhotos([]); setCherry(null); setResult(null); setAsk(false); setDialog(null);
     setScreen("home");
   }
   useEffect(() => {
@@ -164,6 +169,7 @@ export default function App() {
   function startCheck() {
     tap();
     setPhotos([]);
+    setCherry(null);
     setResult(null);
     setAsk(false);
     setQ({ block: "", changed: null, sprayed: null });
@@ -172,7 +178,10 @@ export default function App() {
 
   // Dev-only test hook: feed sample photos without a camera (stripped from production builds).
   useEffect(() => {
-    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__jiraniAddPhoto = (b: Blob) => addPhoto(b);
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as Record<string, unknown>;
+    w.__jiraniAddPhoto = (b: Blob) => addPhoto(b);
+    w.__jiraniAddCherry = (b: Blob) => addCherry(b);
   });
 
   async function addPhoto(f: Blob | undefined) {
@@ -182,6 +191,21 @@ export default function App() {
       const p = await processPhoto(f);
       buzz(p.quality.ok ? "ok" : "bad");
       setPhotos((ps) => [...ps, p]);
+    } catch {
+      notify(tr("photo_error"), "bad");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** The cherry photo is optional and graded on its own; a photo that cannot be graded just means "no grade". */
+  async function addCherry(f: Blob | undefined) {
+    if (!f) return;
+    setBusy(true);
+    try {
+      const c = await processCherry(f);
+      buzz(c.grade.band ? "ok" : "bad");
+      setCherry(c);
     } catch {
       notify(tr("photo_error"), "bad");
     } finally {
@@ -213,13 +237,14 @@ export default function App() {
       answers: { changed: q.changed ?? "nothing_new", sprayed: q.sprayed ?? "unknown" },
       modelVersion: model.meta.version, synced: false,
     };
-    setResult({ dx, trend, ranking, heatmaps, obs: o, at: now, ms: good.map((p) => Math.round(p.result!.ms)) });
+    const harvest = harvestFor(cherry?.grade ?? null, tickets); // its own slot: it never changes the diagnosis
+    setResult({ dx, trend, ranking, harvest, heatmaps, obs: o, at: now, ms: good.map((p) => Math.round(p.result!.ms)) });
     setBusy(false);
     setScreen("card");
   }
 
   // The card and the SMS are looked up again when the language changes.
-  const card = useMemo(() => (result && A ? buildCard(result.dx, result.trend, result.ranking, A, L) : null), [result, A, L]);
+  const card = useMemo(() => (result && A ? buildCard(result.dx, result.trend, result.ranking, A, L, result.harvest) : null), [result, A, L]);
   const sms = useMemo(() => (result && card && A ? buildSms(card, result.obs.block, result.at, A, L) : ""), [result, card, A, L]);
 
   async function saveAndFinish() {
@@ -294,8 +319,9 @@ export default function App() {
           offlineReady={offlineReady} onCheck={startCheck} go={setScreen} />
       )}
       {screen === "capture" && (
-        <Capture lang={L} photos={photos} busy={busy} onPhoto={addPhoto}
+        <Capture lang={L} photos={photos} cherry={cherry} busy={busy} onPhoto={addPhoto}
           onRetake={() => setPhotos((ps) => ps.slice(0, -1))}
+          onCherry={addCherry} onCherryRemove={() => setCherry(null)}
           onContinue={() => setScreen("questions")} />
       )}
       {screen === "questions" && plot && (

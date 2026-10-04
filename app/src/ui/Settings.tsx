@@ -1,8 +1,11 @@
 // Settings: this phone, privacy, advanced (server, timing, demo data), about.
-import { FlaskConical, Globe, Info, Lock, MapPin, Server, Smartphone, Timer, Trash2 } from "lucide-react";
+import { FlaskConical, Globe, Info, Languages, Lock, MapPin, Server, Smartphone, Timer, Trash2, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { addObservation, clearAll, type Settings } from "../db/db";
+import { gikuyuPack } from "../handoff/gikuyu";
 import type { ModelMeta } from "../inference/model";
 import type { Lang } from "../logic/types";
+import { CardLink } from "./CardLink";
 import { t } from "./i18n";
 import type { Plot } from "./types";
 import type { DialogSpec } from "./widgets";
@@ -14,6 +17,8 @@ export function SettingsView({ lang, settings, plots, update, model, ask, notify
   ask: (d: DialogSpec) => void; notify: (text: string, tone?: "ok" | "bad") => void; onCleared: () => void;
 }) {
   const T = (k: string) => t(lang, k);
+  const [kiPlaceholder, setKiPlaceholder] = useState(false);
+  useEffect(() => { gikuyuPack().then((p) => setKiPlaceholder(p.placeholder)); }, []);
 
   async function addDemo() {
     if (!settings.plotId) return;
@@ -35,6 +40,8 @@ export function SettingsView({ lang, settings, plots, update, model, ask, notify
             <option value="sw">{T("lang_sw")}</option><option value="en">{T("lang_en")}</option>
           </select>
         </label>
+        <p className="hint"><Volume2 size={15} aria-hidden /> {T("ki_note")}{kiPlaceholder && ` ${T("ki_placeholder")}`}</p>
+        <p className="hint"><Languages size={15} aria-hidden /> {T("lang_fallback")}</p>
         <label className="field"><span><MapPin size={18} aria-hidden /> {T("plot")}</span>
           <select value={settings.plotId ?? ""} onChange={(e) => update({ plotId: e.target.value, blocks: plots.find((p) => p.plot_id === e.target.value)?.blocks ?? [] })}>
             {plots.map((p) => <option key={p.plot_id} value={p.plot_id}>{p.plot_id} ({p.blocks.join(", ")})</option>)}
@@ -73,6 +80,7 @@ export function SettingsView({ lang, settings, plots, update, model, ask, notify
           {model && <><dt>{T("model")}</dt><dd>{model.version} · {(model.file_size_bytes / 1e6).toFixed(2)} MB · {model.variant} · tau {model.tau}</dd></>}
         </dl>
         <p className="hint"><Info size={15} aria-hidden /> {T("review_note")}</p>
+        <CardLink lang={lang} />
       </section>
     </main>
   );

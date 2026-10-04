@@ -1,17 +1,20 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { type Band, gradeCherryPixels } from "../capture/cherry";
 import { STRESS_CLASSES, type StressClass } from "../config";
 import { buildSms, isGsm7, officerSms, smsUri, visitSms } from "../handoff/sms";
 import { aggregate } from "./aggregate";
 import type { Answers } from "./answers";
 import { actionKey, buildCard } from "./card";
 import { rankCauses } from "./causes";
+import { type BuyerTickets, type Harvest, harvestFor, harvestSlot, NO_HARVEST, ticketRange } from "./harvest";
 import { officerText, visitText } from "./officer";
 import { refusalReason } from "./refusal";
 import { computeTrend } from "./trend";
 import type { ContextPack, Diagnosis, LeafResult, Observation, OfficerReply, Trend } from "./types";
 
 const A: Answers = JSON.parse(readFileSync("public/content/answers.json", "utf8"));
+const REG: BuyerTickets = JSON.parse(readFileSync("public/content/plots.json", "utf8")).buyer_tickets;
 const TAU = 0.8;
 
 function leaf(stress: StressClass, p: number, severity = 2): LeafResult {
@@ -200,9 +203,130 @@ describe("card + SMS", () => {
       }
     }
   });
+  it("the causes slot says it is rules over cached estimates, and when there is no fresh context", () => {
+    for (const { dx, trend } of allDiagnoses()) {
+      const stale = buildCard(dx, trend ? { trend, days: 14, previous: null } : null,
+        rankCauses({ diagnosis: dx, trend, sprayed: "no", now: NOW, pack: null }), A, "en");
+      expect(stale.ruleNote).toBe("Rain and soil are cached estimates, not a second model. They never override a low-confidence leaf.");
+      expect(stale.contextNote).toBe("No fresh rain or soil note.");
+      const fresh = buildCard(dx, trend ? { trend, days: 14, previous: null } : null,
+        rankCauses({ diagnosis: dx, trend, sprayed: "no", now: NOW, pack: pack({}) }), A, "sw");
+      expect(fresh.contextNote).toBeNull();
+      expect(fresh.ruleNote).toBe(A.cause.rule_note.sw);
+    }
+  });
   it("sms: URI uses & on iOS and ? on Android", () => {
     expect(smsUri("+254 700 000000", "hi there", true)).toBe("sms:+254700000000&body=hi%20there");
     expect(smsUri("0700000000", "hi", false)).toBe("sms:0700000000?body=hi");
+  });
+});
+
+// Cherry photo pixels: `red`, `green` and `black` shares of the frame on a white card (the rest is card).
+function cherryPixels(red: number, green = 0, black = 0, background: [number, number, number] = [245, 245, 240]): Uint8ClampedArray {
+  const n = 1000, d = new Uint8ClampedArray(n * 4);
+  for (let i = 0; i < n; i++) {
+    const f = i / n;
+    const [r, g, b] = f < red ? [170, 25, 35] : f < red + green ? [90, 150, 50] : f < red + green + black ? [20, 14, 12] : background;
+    d.set([r, g, b, 255], i * 4);
+  }
+  return d;
+}
+
+describe("harvest slot (cherry band + buyer tickets)", () => {
+  const CURRENCY = /usd|kes|ksh|shilling|dollar|price|\$|€|£/i;
+  it("the vision path gives a band or no grade, and never a currency amount", () => {
+    const cases: [Uint8ClampedArray, Band | null, string | null][] = [
+      [cherryPixels(0.4), "A", null],                           // ripe red on the card
+      [cherryPixels(0.3, 0.05), "B", null],                     // some unripe fruit
+      [cherryPixels(0.15, 0.2), "C", null],                     // mostly unripe
+      [cherryPixels(0.2, 0, 0.1), "C", null],                   // blackened fruit
+      [cherryPixels(0), null, "no_cherry"],                     // empty card
+      [cherryPixels(0.01), null, "no_cherry"],
+      [cherryPixels(0.95), null, "no_card"],                    // no card in view
+      [cherryPixels(0.3, 0, 0, [70, 50, 35]), null, "dark"],    // on a dark table
+      [cherryPixels(0, 0, 1), null, "dark"],                    // black frame
+    ];
+    for (const [pixels, band, issue] of cases) {
+      const g = gradeCherryPixels(pixels);
+      expect(g.band).toBe(band);
+      expect(g.issue).toBe(issue);
+      expect(Object.keys(g).sort()).toEqual(["band", "issue", "metrics"]);
+      expect(Object.keys(g.metrics).sort()).toEqual(["card", "defect", "fruit", "ripe"]);   // shares of pixels only
+      for (const v of Object.values(g.metrics)) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(1); }
+      expect(JSON.stringify(g)).not.toMatch(CURRENCY);
+      // with no cooperative tickets, a graded photo puts no number at all on the card or in the SMS
+      for (const lang of ["en", "sw"] as const) {
+        const h = harvestFor(g, null);
+        expect(h.range).toBeNull();
+        const slot = harvestSlot(h, A, lang);
+        expect(Object.values(slot).join(" ")).not.toMatch(/\d/);
+        const card = buildCard(healthy, null, { causes: [], contextAvailable: false }, A, lang, h);
+        const base = buildSms(buildCard(healthy, null, { causes: [], contextAvailable: false }, A, lang), "B", new Date(2026, 9, 4), A, lang);
+        expect(buildSms(card, "B", new Date(2026, 9, 4), A, lang).slice(base.length)).not.toMatch(/\d/);
+      }
+    }
+  });
+  it("the ticket range is the last three cooperative tickets of that band, from the registry", () => {
+    expect(REG.synthetic).toBe(true);
+    expect(ticketRange(REG, "B")).toEqual({ low: 310, high: 340, unit: "USD/50kg", synthetic: true });
+    const older: BuyerTickets = { ...REG, tickets: [...REG.tickets, { id: "x", date: "2020-01-01", band: "B", price: 5 }] };
+    expect(ticketRange(older, "B")).toMatchObject({ low: 310, high: 340 });   // a fourth, older ticket is not used
+    expect(ticketRange({ ...REG, tickets: [] }, "A")).toBeNull();
+    expect(ticketRange(null, "A")).toBeNull();
+  });
+  it("slot text: with a band, with a photo that could not be graded, and with no photo", () => {
+    const b = harvestSlot(harvestFor({ band: "B", issue: null, metrics: { fruit: 0.3, card: 0.6, ripe: 0.7, defect: 0.1 } }, REG), A, "en");
+    expect(`${b.text} ${b.tickets}`).toBe("Band B. Last coop tickets 310–340 USD/50kg. Not a price offer.");
+    expect(b.prototype).toBe("Prototype grade, not a trained model. Confirm at the factory.");
+    expect(b.synthetic).toBe("Demo tickets are synthetic, not market prices.");
+    expect(harvestSlot(NO_HARVEST, A, "en")).toMatchObject({ bandKey: null, text: "No cherry photo. No grade.", tickets: null, prototype: null });
+    const unclear = harvestFor({ band: null, issue: "no_cherry", metrics: { fruit: 0, card: 1, ripe: 0, defect: 0 } }, REG);
+    expect(harvestSlot(unclear, A, "en")).toMatchObject({ bandKey: null, text: "Cherry photo not clear. No grade.", tickets: null });
+    for (const lang of ["en", "sw"] as const)
+      for (const h of [NO_HARVEST, unclear, ...(["A", "B", "C"] as Band[]).map((band): Harvest => ({ photo: true, band, range: ticketRange(REG, band) }))])
+        expect(Object.values(harvestSlot(h, A, lang)).join(" ")).not.toMatch(/[{}]/);
+  });
+  it("refusal still wins: a cherry band never changes a not-sure result", () => {
+    const h: Harvest = { photo: true, band: "A", range: ticketRange(REG, "A") };
+    const ranking = rankCauses({ diagnosis: unsure, trend: null, sprayed: "no", now: NOW, pack: null });
+    const plain = buildCard(unsure, null, ranking, A, "en");
+    const card = buildCard(unsure, null, ranking, A, "en", h);
+    expect(card.harvest.bandKey).toBe("A");
+    expect({ ...card, harvest: null, harvestInput: null }).toEqual({ ...plain, harvest: null, harvestInput: null });
+    expect(card).toMatchObject({ confident: false, stress: "Not sure", nextStep: "Not sure. Ask a person.", doNot: "Do not spray." });
+    expect(buildSms(card, "B", new Date(2026, 9, 4), A, "en")).toMatch(/^JIRANI 04-Oct Block B: NOT SURE\. .* Ask a person\. Band A/);
+  });
+  it("the SMS gains the band only when there is one, drops the ticket range first, and stays one GSM-7 segment", () => {
+    let withRange = 0, bandOnly = 0, dropped = 0;
+    for (const lang of ["en", "sw"] as const)
+      for (const { dx, trend } of allDiagnoses())
+        for (const block of ["B", "Upper", "Lower-2"]) {
+          const ranking = rankCauses({ diagnosis: dx, trend, sprayed: "no", now: NOW, pack: null });
+          const tr = trend ? { trend, days: 14, previous: null } : null;
+          const base = buildSms(buildCard(dx, tr, ranking, A, lang), block, new Date(2026, 10, 28), A, lang);
+          // no cherry photo, or a photo with no grade: the SMS is unchanged
+          expect(buildSms(buildCard(dx, tr, ranking, A, lang, { photo: true, band: null, range: null }), block, new Date(2026, 10, 28), A, lang)).toBe(base);
+          for (const band of ["A", "B", "C"] as Band[]) {
+            const range = ticketRange(REG, band)!;
+            const sms = buildSms(buildCard(dx, tr, ranking, A, lang, { photo: true, band, range }), block, new Date(2026, 10, 28), A, lang);
+            expect(sms.length).toBeLessThanOrEqual(160);
+            expect(isGsm7(sms)).toBe(true);
+            expect(sms.startsWith(base)).toBe(true);
+            const extra = sms.slice(base.length);
+            if (extra.includes(`${range.low}-${range.high} ${range.unit}`)) withRange++;
+            else if (extra) { bandOnly++; expect(extra).toBe(lang === "en" ? ` Band ${band}.` : ` Daraja ${band}.`); }
+            else dropped++;
+          }
+        }
+    console.log(`SMS harvest fragment: ${withRange} with ticket range, ${bandOnly} band only, ${dropped} dropped (no room)`);
+    expect(withRange).toBeGreaterThan(0);
+    expect(bandOnly).toBeGreaterThan(dropped);
+    // the range fits only on short messages; on most disease cards it is dropped and the band stays
+    const short = buildCard(unsure, null, { causes: [], contextAvailable: false }, A, "en", { photo: true, band: "B", range: ticketRange(REG, "B") });
+    expect(buildSms(short, "B", new Date(2026, 9, 4), A, "en")).toMatch(/ Band B, tickets 310-340 USD\/50kg, no offer\.$/);
+    const long = buildCard(rust3, { trend: "worse", days: 14, previous: null }, { causes: [], contextAvailable: false }, A, "en",
+      { photo: true, band: "B", range: ticketRange(REG, "B") });
+    expect(buildSms(long, "B", new Date(2026, 9, 4), A, "en")).toMatch(/Ask a person\. Band B\.$/);
   });
 });
 
@@ -266,7 +390,7 @@ describe("content safety scan", () => {
     "kiuatilifu", "viuatilifu", "dawa ya", "kemikali", "mbolea ya",
   ];
   const DOSE = /\d+(\.\d+)?\s*(ml|l|cl|g|kg|mg|cc|%|gram|grams|lita|kilo)\b/i;
-  const files = ["public/content/answers.json", "public/content/i18n/en.json", "public/content/i18n/sw.json"];
+  const files = ["public/content/answers.json", "public/content/i18n/en.json", "public/content/i18n/sw.json", "public/audio/ki/manifest.json"];
   function strings(x: unknown): string[] {
     if (typeof x === "string") return [x];
     if (Array.isArray(x)) return x.flatMap(strings);
@@ -299,5 +423,33 @@ describe("audio pack", () => {
       }
     }
     for (const k of ["prompt.block", "prompt.changed", "prompt.sprayed"]) expect(manifest[k]).toBeTruthy();
+  });
+  it("cherry band clips exist, and each ticket clip says the range the registry gives", async () => {
+    const { cardClipKeys } = await import("../handoff/audio");
+    const m = JSON.parse(readFileSync("public/audio/sw/manifest.json", "utf8"));
+    for (const band of ["A", "B", "C"] as Band[]) {
+      const range = ticketRange(REG, band)!;
+      expect(m.spoken[`harvest.tickets.${band}`], `stale ticket clip ${band}: run scripts/build_audio.py --missing after deleting it`)
+        .toEqual({ low: range.low, high: range.high, unit: range.unit });
+      const card = buildCard(rust3, null, { causes: [], contextAvailable: false }, A, "sw", { photo: true, band, range });
+      const keys = cardClipKeys(card, m.spoken);
+      expect(keys.slice(-2)).toEqual([`harvest.band.${band}`, `harvest.tickets.${band}`]);
+      for (const k of keys) expect(existsSync(`public/audio/sw/${m.clips[k]}`), `missing clip ${k}`).toBe(true);
+      // a clip recorded for other amounts is not played
+      const other = buildCard(rust3, null, { causes: [], contextAvailable: false }, A, "sw", { photo: true, band, range: { ...range, high: range.high + 1 } });
+      expect(cardClipKeys(other, m.spoken).at(-1)).toBe(`harvest.band.${band}`);
+    }
+    const none = buildCard(rust3, null, { causes: [], contextAvailable: false }, A, "sw");
+    expect(cardClipKeys(none, m.spoken).some((k) => k.startsWith("harvest."))).toBe(false);
+  });
+  it("Gikuyu pack is phrase-locked: three prompts, a few confirmations, and any clip it claims is on disk", () => {
+    const ki = JSON.parse(readFileSync("public/audio/ki/manifest.json", "utf8"));
+    expect(Object.keys(ki.clips).filter((k) => k.startsWith("prompt."))).toEqual(["prompt.block", "prompt.changed", "prompt.sprayed"]);
+    expect(Object.keys(ki.clips).filter((k) => k.startsWith("confirm.")).length).toBeLessThanOrEqual(5);
+    let recorded = 0;
+    for (const [k, c] of Object.entries(ki.clips as Record<string, { file: string; recorded: boolean }>)) {
+      if (c.recorded) { recorded++; expect(existsSync(`public/audio/ki/${c.file}`), `missing Gikuyu clip ${k}`).toBe(true); }
+    }
+    expect(ki.placeholder).toBe(recorded < Object.keys(ki.clips).length);   // the visible note follows this flag
   });
 });

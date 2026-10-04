@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Jirani · Offline leaf check for coffee farmers{% endblock %}
-{% block head %}<meta name="description" content="Jirani checks three coffee leaves on a phone without internet, hands the result to a basic phone, and lets the cooperative warn neighbouring farms.">{% endblock %}
+{% block head %}<meta name="description" content="Jirani checks three coffee leaves on a phone without internet, refuses when it is not sure, hands the result to a basic phone, and lets the cooperative warn neighbouring farms.">{% endblock %}
 {% block style %}
   body { background:var(--surface); }
   .nav { position:sticky; top:0; z-index:5; background:var(--brand); }
@@ -24,6 +24,9 @@
   .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; padding-top:28px; padding-bottom:28px; }
   .stats b { display:block; font-size:30px; line-height:1.1; color:var(--brand); }
   .stats span { display:block; margin-top:4px; font-size:14px; color:var(--muted); }
+  .stats .lead-stat { grid-column:span 2; }
+  .stats .lead-stat b { font-size:44px; }
+  .stats .lead-stat span { font-size:15.5px; color:var(--ink-2); }
   section.block { padding:64px 0; }
   section.block.alt { background:var(--bg); }
   .kicker { color:var(--accent-ink); font-size:13.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
@@ -50,6 +53,10 @@
   .results tr:last-child td { border-bottom:0; }
   .results td:last-child { font-weight:700; white-space:nowrap; }
   .results .down td:last-child { color:var(--bad); }
+  .results .head td { background:var(--brand-tint); font-weight:700; }
+  .results .head td:last-child { font-size:22px; color:var(--brand); }
+  h3.also { margin:32px 0 0; font-size:19px; }
+  h3.also + table.results { margin-top:12px; }
   .final { background:var(--brand); color:#fff; text-align:center; padding:56px 0; }
   .final p { color:#cfe0ee; max-width:38em; margin:0 auto; }
   .final .cta { justify-content:center; margin-bottom:0; }
@@ -58,6 +65,7 @@
     .hero .fine { padding-bottom:28px; }
     .grid3, .grid4, .two { grid-template-columns:minmax(0,1fr); }
     .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .stats .lead-stat b { font-size:36px; }
     .nav nav a:not(.btn) { display:none; }
     section.block { padding:44px 0; }
   }
@@ -67,8 +75,8 @@
 <header class="nav"><div class="wrap">
   <a class="brand" href="/">{{ logo(28) }} Jirani</a>
   <nav>
-    <a href="#how">How it works</a><a href="#results">Results</a><a href="#limits">Guardrails and limits</a><a href="/simulation">Simulation</a>
-    <a class="btn accent" href="/dashboard">Cooperative dashboard</a>
+    <a href="#how">How it works</a><a href="#results">Results</a><a href="#limits">Guardrails and limits</a><a href="/simulation">Simulation</a><a href="/dashboard">Dashboard</a>
+    <a class="btn accent" href="{{ app_url }}" rel="noopener">Open the farmer app</a>
   </nav>
 </div></header>
 
@@ -80,9 +88,9 @@
       likely wrong, or says "not sure, ask a person". The result goes to a basic phone, and the cooperative can warn
       neighbouring farms.</p>
     <div class="cta">
-      <a class="btn accent" href="/dashboard">{{ icon("map", 20) }} Open the cooperative dashboard</a>
+      <a class="btn accent" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Open the farmer app</a>
       <a class="btn ghost" href="/simulation">{{ icon("send", 20) }} Watch the simulation</a>
-      <a class="btn ghost" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Try the farmer app</a>
+      <a class="btn ghost" href="/dashboard">{{ icon("map", 20) }} Cooperative dashboard</a>
     </div>
     <p class="fine">Hackathon prototype. "Jirani" means "neighbour" in Kiswahili. Demo data is synthetic.</p>
   </div>
@@ -93,9 +101,8 @@
 </div></section>
 
 <div class="band"><div class="wrap stats">
-  <div><b>1.04 MB</b><span>model, runs on the phone</span></div>
-  <div><b>90.1%</b><span>stress accuracy on 253 held-out test leaves (Brazilian dataset)</span></div>
-  <div><b>82–204 ms</b><span>per leaf on a Samsung Galaxy A14</span></div>
+  <div class="lead-stat"><b>75.6% answered, 100% right</b><span>The three-leaf rule answered 75.6% of 82 simulated triples of held-out test leaves (Brazilian dataset), with 100% accuracy when it answered. The rest got "Not sure. Ask a person."</span></div>
+  <div><b>1.04 MB</b><span>model, runs on the phone; 82–204 ms per leaf on a Samsung Galaxy A14</span></div>
   <div><b>0</b><span>AI-generated sentences: every answer comes from a fixed list</span></div>
 </div></div>
 
@@ -119,16 +126,16 @@
   <h2>Built around the phone that is actually there</h2>
   <p class="sub">The household smartphone is home only some of the time, and there is no Wi-Fi. So the sample comes to the phone, and the cooperative is the hub.</p>
   <div class="grid4">
-    <div class="card step"><div class="n">1</div><h3>Three leaves come home</h3><p>The farmer picks three leaves from one block and lays each one on white paper.</p></div>
+    <div class="card step"><div class="n">1</div><h3>Leaves and cherry come home</h3><p>Three leaves and a handful of cherry on the printed card. The cooperative prints the <a href="/static/capture-card.pdf">capture card (PDF)</a>: three leaf boxes, a cherry box and a 20 mm scale bar.</p></div>
     <div class="card step"><div class="n">2</div><h3>The phone checks them offline</h3><p>A small model on the phone reads the photos. It answers only when it is confident and at least two leaves agree.</p></div>
-    <div class="card step"><div class="n">3</div><h3>The result reaches a basic phone</h3><p>One prefilled SMS, which the farmer sends herself, plus spoken Kiswahili audio.</p></div>
+    <div class="card step"><div class="n">3</div><h3>The result reaches a basic phone</h3><p>Daughter's phone, Sunday: the result is copied to the basic phone as one prefilled SMS, which the farmer sends herself, plus spoken Kiswahili audio.</p></div>
     <div class="card step"><div class="n">4</div><h3>The cooperative warns neighbours</h3><p>Reports sync when there is signal. Clusters become draft alerts, and an officer approves each one.</p></div>
   </div>
 </div></section>
 
 <section class="block"><div class="wrap">
   <div class="kicker">What it does</div>
-  <h2>One card, seven fixed slots</h2>
+  <h2>One card, fixed slots</h2>
   <div class="grid3">
     <div class="card"><div class="ico">{{ icon("scan", 24) }}</div><h3>Offline diagnosis that can refuse</h3><p>Leaf miner, leaf rust, brown leaf spot, cercospora or healthy. If the photos are poor or the leaves disagree, the only answer is "Not sure. Ask a person. Do not spray."</p></div>
     <div class="card"><div class="ico">{{ icon("trend", 24) }}</div><h3>Severity and trend</h3><p>How bad it is, and whether the block is worse, the same or better than the last check within six weeks.</p></div>
@@ -137,6 +144,8 @@
     <div class="card"><div class="ico">{{ icon("volume", 24) }}</div><h3>Handoff to a basic phone</h3><p>A single-part SMS of 160 characters or fewer, and Kiswahili audio built from pre-recorded clips.</p></div>
     <div class="card"><div class="ico">{{ icon("bell", 24) }}</div><h3>Neighbour early warning</h3><p>Three or more plots within 2 km reporting the same problem in 14 days create a draft alert on the <a href="/dashboard">dashboard</a>.</p></div>
     <div class="card"><div class="ico">{{ icon("pin", 24) }}</div><h3>Visits in the right order</h3><p>Severe or worsening blocks become visit tickets, ranked so the officer knows where to go first. Once the officer confirms a date, the farmer sees when the visit is and what to do until then.</p></div>
+    <div class="card"><div class="ico">{{ icon("list", 24) }}</div><h3>Cherry band and what buyers paid</h3><p>An optional cherry photo gets band A, B or C from a prototype colour check, not a trained model. Next to it the card shows the last three cooperative buyer tickets for that band as a range. It is never a price offer, and the photo never produces a price.</p></div>
+    <div class="card"><div class="ico">{{ icon("users", 24) }}</div><h3>Home language, phrase-locked</h3><p>The three questions can be played as recorded Gikuyu prompts, then shown in Kiswahili. Gikuyu is limited to a fixed list of human recordings because generated Gikuyu would hallucinate. Any other language gets the picture card only.</p></div>
     <div class="card"><div class="ico">{{ icon("camera", 24) }}</div><h3>Ask the officer, without a farm visit</h3><p>If she chooses, the farmer sends the three leaf photos. The officer looks at them on the dashboard and replies from a fixed list.</p></div>
   </div>
 </div></section>
@@ -144,13 +153,18 @@
 <section class="block alt" id="results"><div class="wrap">
   <div class="kicker">Measured results</div>
   <h2>The numbers, including the drops</h2>
-  <p class="sub">Measured on the exported model that ships in the app. Test set: 253 leaves from the BRACOL dataset (Brazil), held out from training.</p>
+  <p class="sub">Measured on the exported model that ships in the app. Test set: 253 leaves from the BRACOL dataset (Brazil), held out from training. The product number is the three-leaf rule, because that is what the farmer gets.</p>
   <table class="results">
-    <tr><td>Stress accuracy on the clean test set</td><td>90.1%</td></tr>
+    <tr class="head"><td>Three-leaf rule, as the app applies it: answered 75.6% of 82 simulated triples; accuracy when it answered</td><td>100%</td></tr>
+    <tr><td>The other 24.4% of triples got the refusal: "Not sure. Ask a person. Do not spray."</td><td>24.4% refused</td></tr>
+  </table>
+  <h3 class="also">Also measured</h3>
+  <table class="results">
+    <tr><td>Single-leaf stress accuracy on the clean Brazilian test set</td><td>90.1%</td></tr>
+    <tr class="down"><td>Weakest classes on that test: leaf miner recall / cercospora recall</td><td>75.9% / 72.7%</td></tr>
     <tr><td>Severity within one level</td><td>98.8%</td></tr>
-    <tr><td>Three-leaf rule: answers given / accuracy when it answers (82 simulated triples)</td><td>75.6% / 100%</td></tr>
     <tr class="down"><td>Accuracy on synthetic messy photos (blur, low light, colour cast, cluttered background)</td><td>77.2%</td></tr>
-    <tr class="down"><td>Refuses leaves of other crops: single photo / three photos</td><td>48% / 78%</td></tr>
+    <tr class="down"><td>Refuses leaves of other crops (PlantDoc): 48% of single non-coffee photos, 78% with the three-leaf rule. About one in five such triples still gets a confident answer.</td><td>48% / 78%</td></tr>
     <tr><td>Model size</td><td>1.04 MB</td></tr>
   </table>
 </div></section>
@@ -169,8 +183,10 @@
     <div class="card limits"><div class="ico" style="background:var(--warn-bg);color:var(--warn)">{{ icon("alert", 24) }}</div><h3>Known limits</h3>
       <ul class="checks">
         <li>{{ icon("alert") }}<span><b>Trained on Brazilian leaves.</b> Accuracy on Kenyan varieties and field conditions is unknown.</span></li>
-        <li>{{ icon("alert") }}<span><b>Draft guidance.</b> The advice text is not reviewed by an agronomist, and the Kiswahili is machine-drafted.</span></li>
-        <li>{{ icon("alert") }}<span><b>Synthetic demo data.</b> The cooperative is fictional; its {{ n_plots }} plot points are random points in a real coffee-growing area{% if area %} ({{ area|replace("Coffee-growing area near ", "near ") }}){% endif %}.</span></li>
+        <li>{{ icon("alert") }}<span><b>Machine-drafted Kiswahili until human clips land.</b> The Kiswahili text and the result clips are machine-drafted. The clips come from Meta MMS-TTS, a non-commercial (CC-BY-NC) model; audio for judging should be human recordings with the same file names. The advice text is not reviewed by an agronomist.</span></li>
+        <li>{{ icon("alert") }}<span><b>Gikuyu clips are placeholders.</b> Gikuyu is phrase-locked to a fixed list of recorded prompts, and none has been recorded yet. Until then the questions are answered with taps.</span></li>
+        <li>{{ icon("alert") }}<span><b>Cherry band is a prototype.</b> A colour check, not a trained model, and not tested on Kenyan cherry. The card says "Confirm at the factory".</span></li>
+        <li>{{ icon("alert") }}<span><b>Synthetic demo data.</b> The cooperative is fictional; its {{ n_plots }} plot points are random points in a real coffee-growing area{% if area %} ({{ area|replace("Coffee-growing area near ", "near ") }}){% endif %}. The buyer tickets are synthetic too.</span></li>
         <li>{{ icon("alert") }}<span><b>Mock SMS.</b> Neighbour alerts are recorded as "would be sent"; no real message goes out.</span></li>
       </ul></div>
   </div>
@@ -178,10 +194,11 @@
 
 <section class="final"><div class="wrap">
   <h2>See it working</h2>
-  <p>The dashboard shows the plots on a map, the officer's visit list, draft alerts and the message outbox.</p>
+  <p>Start with the farmer app. The simulation plays the whole flow on one page, and the dashboard shows the plots on a map, the officer's visit list, draft alerts and the message outbox.</p>
   <div class="cta">
-    <a class="btn accent" href="/dashboard">{{ icon("map", 20) }} Open the dashboard</a>
-    <a class="btn ghost" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Open the farmer app</a>
+    <a class="btn accent" href="{{ app_url }}" rel="noopener">{{ icon("phone", 20) }} Open the farmer app</a>
+    <a class="btn ghost" href="/simulation">{{ icon("send", 20) }} Watch the simulation</a>
+    <a class="btn ghost" href="/dashboard">{{ icon("map", 20) }} Open the dashboard</a>
     <a class="btn ghost" href="{{ repo_url }}" rel="noopener">{{ icon("code", 20) }} Source code</a>
   </div>
 </div></section>

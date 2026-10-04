@@ -3,7 +3,12 @@
 says what is likely wrong (or "not sure, ask a person"), hands the result to a basic phone, and lets the cooperative
 warn neighbouring farms.
 
-**Live:** farmer app <https://jirani-eosin.vercel.app> · project page <https://jirani-coop.onrender.com> · simulation of the whole flow <https://jirani-coop.onrender.com/simulation> · cooperative dashboard <https://jirani-coop.onrender.com/dashboard> (demo data is synthetic)
+**Live, in demo order:**
+1. Farmer app: <https://jirani-eosin.vercel.app>
+2. Simulation of the whole flow: <https://jirani-coop.onrender.com/simulation>
+3. Cooperative dashboard: <https://jirani-coop.onrender.com/dashboard> (demo data is synthetic)
+
+Project page: <https://jirani-coop.onrender.com> · printable capture card: [app/public/capture-card.pdf](app/public/capture-card.pdf)
 
 Hack-Nation 7th Global AI Hackathon, Challenge 04 *Small AI for Development* (World Bank Youth Summit), Agriculture.
 "Jirani" means "neighbour" in Kiswahili.
@@ -21,9 +26,9 @@ out what is wrong with her trees, and no way to warn her neighbours, because exp
 smartphone or internet of her own.
 
 How Jirani fits those constraints:
-1. **The sample comes to the phone.** Noor carries three leaves home.
-2. **The smartphone runs the check offline** on the weekend.
-3. **The result goes to her basic phone** as a prefilled SMS, which she sends herself, plus Kiswahili audio.
+1. **The sample comes to the phone.** Noor carries three leaves and a handful of cherry home and lays them on the printed capture card.
+2. **The smartphone runs the check offline** on the weekend (daughter's phone, Sunday).
+3. **The result is copied to her basic phone** as a prefilled SMS, which she sends herself, plus Kiswahili audio.
 4. **The cooperative is the hub.** It syncs reports when there is signal, detects clusters, and sends neighbour alerts only after an officer approves.
 
 Background evidence (with sources and `TODO: verify` flags): [EVIDENCE.md](EVIDENCE.md).
@@ -39,7 +44,10 @@ Background evidence (with sources and `TODO: verify` flags): [EVIDENCE.md](EVIDE
 | F4 | **Yield-drop cause ranking** | A transparent rule-based scorer combines the image result with a cached weather and soil pack (NASA POWER rain vs. 10-year normal, SoilGrids pH). It shows up to 3 causes plus "what this tool cannot see". |
 | F5 | **Ask the officer (opt-in photos)** | On any result, the farmer can switch on "Ask the extension officer". The three leaf photos (crops of at most 640 px with no EXIF; 38 KB for three photos in our test) then go with the next Sync. The officer sees them on the dashboard and replies from a fixed list: a diagnosis with low/high, "I will visit", or "send new photos". The reply reaches the phone at its next sync and can be forwarded to the basic phone as one SMS. |
 | F6 | **Visit queue (tickets)** | The server opens a visit ticket when a block reports severity high or above, gets worse at low severity or above, or when the officer answers a photo request with "I will visit". The dashboard ranks tickets by a transparent score (severity first, then worsening, outbreak area, promised visits, days waiting), numbers them on the map and suggests dates from the officer's capacity. When the officer confirms a date, the farmer's app shows "The officer will visit Block B on Monday 5 October, in the morning" with four fixed "until then" steps at its next sync, and a visit SMS is written to the mock outbox. |
-| Handoff | **Basic phone** | A single-segment SMS (≤ 160 GSM-7 characters, tested for every possible card in both languages) via an `sms:` link; Kiswahili audio built from pre-recorded clips; share audio over Bluetooth. |
+| F7 | **Harvest slot: cherry band and ticket range** | After the three leaves, an optional fourth photo: a handful of cherry in the cherry box of the card. A **prototype colour-and-defect heuristic** (not a trained model) gives band A, B or C, or no grade when the photo is dark, shows no card or shows too little fruit. Next to the band the card shows the last three cooperative buyer tickets of that band as a range, from the cooperative seed: "Band B. Last coop tickets 310–340 USD/50kg. Not a price offer." The photo never produces a price, and the tickets in the demo are synthetic. Without the photo the slot says "No cherry photo. No grade." A band never changes the leaf result: a refusal stays a refusal. |
+| F8 | **Phrase-locked Gikuyu prompts** | On the three questions, "Play prompt (Gikuyu)" plays a recorded Gikuyu clip and then shows the same question in Kiswahili. Gikuyu is limited to a fixed clip pack (`app/public/audio/ki/`): three prompts and up to five confirmations. Nothing is generated for it, at build time or at runtime, **because generated Gikuyu would hallucinate** and nobody on the team could check it. The clips in the repository are **placeholders** (none recorded yet), the app says so, and the questions can always be answered with taps. Any other language gets the picture row on the card only: three leaves, tick, cross, band. |
+| Card | **Printable capture card** | [capture-card.pdf](app/public/capture-card.pdf) (A4): three leaf boxes, a cherry box, black-white corner marks in three corners, a 20 mm scale bar, "Ondera / Jirani" and "not a diagnosis". It replaces "lay each leaf on white paper". The app does not detect the corner marks yet; the only gate is still the photo quality gate (blur, exposure, leaf present). |
+| Handoff | **Basic phone** | A single-segment SMS (≤ 160 GSM-7 characters, tested for every possible card in both languages) via an `sms:` link; Kiswahili audio built from pre-recorded clips; share audio over Bluetooth. When there is a cherry band, the SMS gains a short fragment ("Band B."); the ticket range is added only if the message still fits one segment, and it stays on the card and in the audio. |
 
 Every user-facing sentence comes from a fixed answer list (`app/public/content/answers.json`, i18n). There are
 **no LLM calls** anywhere at runtime.
@@ -48,10 +56,12 @@ Every user-facing sentence comes from a fixed answer list (`app/public/content/a
 
 ```
 ┌──────────────────────── Smartphone (PWA, offline after first load) ───────────────────────┐
-│ 3 leaf photos → quality gate (blur / exposure / leaf colour) → crop to leaf bounding box   │
+│ 3 leaf photos on the printed card (+ optional cherry photo → colour heuristic → band)      │
+│ → quality gate (blur / exposure / leaf colour) → crop to leaf bounding box                 │
 │ → ONNX model (int8 weights, onnxruntime-web WASM, self-hosted) → temperature T → softmax   │
 │ → 3-leaf aggregation → refusal gate (tau, agreement) → trend (IndexedDB) → cause ranking   │
-│   (cached context pack) → Decision Card (7 fixed slots) → SMS link + Kiswahili audio       │
+│   (cached context pack) → Decision Card (7 fixed slots + harvest slot: band and the        │
+│   cooperative's ticket range) → SMS link + Kiswahili audio                                 │
 │ → outbox (IndexedDB). Service worker precaches app, model, wasm, audio, content, context.  │
 └──────────────────────────────┬─────────────────────────────────────────────────────────────┘
                                │ only when online, only after the user taps Send
@@ -103,7 +113,7 @@ Prerequisites: Python 3.11, Node 22.12+, git. Commands run from the repo root un
 cd app
 npm install
 npm run dev          # http://localhost:5173  (copies the onnxruntime wasm into public/ort first)
-npm test             # 29 unit tests: aggregation, refusal, trend, causes, SMS length, officer replies and visits, audio pack, no-chemicals scan
+npm test             # 38 unit tests: aggregation, refusal, trend, causes, cherry band (no price from the photo), SMS length, officer replies and visits, audio packs, no-chemicals scan
 npm run build        # production PWA in app/dist (set VITE_API_URL to point at your server)
 npm run preview      # serve dist on http://localhost:4173 (service worker active: test offline here)
 ```
@@ -111,7 +121,9 @@ npm run preview      # serve dist on http://localhost:4173 (service worker activ
 ### Android app (Capacitor)
 The same web build, wrapped as a native Android app. The model, wasm, audio and context packs are bundled in the
 APK, so it works offline from the first launch (no service worker). It talks to the live server set in
-`app/.env.android`. Audio sharing uses the native share sheet; the SMS link opens the phone's SMS app.
+`app/.env.android`. Audio sharing uses the native share sheet; the SMS link opens the phone's SMS app. The printable
+capture card also goes through the share sheet (print it, send it to the cooperative's computer or open it in a PDF
+viewer), because the WebView cannot show a PDF.
 
 Prerequisites: JDK 21 (`JAVA_HOME`), Android SDK with platform 36 (`app/android/local.properties` → `sdk.dir=...`).
 ```bash
@@ -133,7 +145,7 @@ python -m venv .venv
 .venv/Scripts/activate                              # Windows; on macOS/Linux: source .venv/bin/activate
 pip install -r server/requirements-dev.txt
 uvicorn main:app --app-dir server --port 8000      # landing page http://localhost:8000, dashboard /dashboard
-python -m pytest server -q                          # 24 tests: outbreak rule, approval, privacy, photo requests, visit tickets, simulation, SMS allowlist, CORS, pages
+python -m pytest server -q                          # 25 tests: outbreak rule, buyer tickets, approval, privacy, photo requests, visit tickets, simulation, SMS allowlist, CORS, pages
 python scripts/simulate_outbreak.py                 # posts 2 SYNTHETIC neighbour rust reports (--all adds OND-0017)
 ```
 
@@ -191,10 +203,17 @@ the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play al
 ### Rebuild the context pack and the audio pack
 ```bash
 pip install -r scripts/requirements.txt
-python scripts/seed_cooperative.py          # SYNTHETIC registry -> server/seed_plots.json, app/public/content/plots.json
+python scripts/seed_cooperative.py          # SYNTHETIC registry and buyer tickets -> server/seed_plots.json, app/public/content/plots.json
 python scripts/build_context_pack.py        # NASA POWER + SoilGrids -> app/public/context/<plot>.json (~8 min, rate-limited)
-python scripts/build_audio.py               # Kiswahili clips -> app/public/audio/sw/
+python scripts/build_audio.py --missing     # Kiswahili clips -> app/public/audio/sw/ (without --missing: rebuild every clip)
+python scripts/build_capture_card.py        # printable card -> app/public/capture-card.pdf, server/static/capture-card.pdf
 ```
+
+**Human recordings.** To replace a machine-drafted Kiswahili clip, drop a recording with the same file name into
+`app/public/audio/sw/` (the names are in `manifest.json`); `--missing` never overwrites an existing file. If the buyer
+tickets change, delete the `harvest_tickets_*.mp3` clips and run `build_audio.py --missing`: a unit test fails while
+a ticket clip says a different range from the registry, and the app skips such a clip. Gikuyu clips are recorded by a
+person only: see `app/public/audio/ki/manifest.json` for the list and file names.
 
 ## Guardrails
 
@@ -220,7 +239,11 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
 ## Known limits
 
 - **Brazilian training data.** BRACOL comes from Espírito Santo, Brazil. It has no Kenyan varieties (SL28, SL34, Ruiru 11) and no Kenyan field conditions. Accuracy on Kenyan leaves is **unknown**.
-- **Detached leaves only.** The model saw the lower side of single detached leaves on white paper. Cluttered backgrounds drop accuracy to 55%, which is why the app insists on white paper.
+- **Detached leaves only.** The model saw the lower side of single detached leaves on a white background. Cluttered backgrounds drop accuracy to 55%, which is why the app asks for the printed capture card (a white sheet with leaf boxes).
+- **The capture card is not detected.** The corner marks and the scale bar are printed for a later check. Today the app cannot tell whether the card was used, so it does not warn about it; the quality gate is the only gate. The model was not re-tested on photos taken on the card.
+- **Cherry band is a weekend prototype.** A colour heuristic with draft thresholds, tested only on generated images, never on real cherry and not on Kenyan varieties. It is not derived from BRACOL. The card says "Prototype grade, not a trained model. Confirm at the factory."
+- **Buyer tickets are synthetic.** Nine made-up demo tickets in the cooperative seed. They are not market prices.
+- **Gikuyu clips are placeholders.** No Gikuyu audio has been recorded, so the "Play prompt" control is silent and only shows the Kiswahili question.
 - **No nutrient-deficiency or abiotic classes.** These should fall through to "not sure", but that is not guaranteed.
 - **Weak refusal on other crops' leaves.** On PlantDoc images (tomato and corn rusts, etc.) the model refuses only 48% of single images and 78% with the three-leaf rule. The quality gate adds some protection.
 - **Severity is a rough guide.** The "high" and "very high" classes are rare in the training data.
@@ -239,9 +262,11 @@ python scripts/build_audio.py               # Kiswahili clips -> app/public/audi
 | Context packs | Real NASA POWER / SoilGrids data for the **synthetic plot points** (real area, not real farms) |
 | Agronomy text (actions, do-nots, causes, alert templates) | **Draft, not reviewed by an agronomist** (`review_status` in `answers.json`) |
 | Kiswahili text | **Machine-drafted, needs native speaker review** |
-| Kiswahili audio | **Machine-generated** (Meta MMS-TTS, **CC-BY-NC-4.0**, non-commercial: replace before deployment); not reviewed by a native speaker |
+| Kiswahili audio | **Machine-generated** (Meta MMS-TTS, **CC-BY-NC-4.0**, non-commercial: replace before deployment); not reviewed by a native speaker. Audio for judging should be human recordings dropped into `app/public/audio/sw/` with the same file names. |
+| Cherry band | **Prototype heuristic**, not a trained model; not tested on real cherry |
+| Buyer tickets | **Synthetic** demo values in the cooperative seed |
 | Simulation narration (English) | Fixed hand-written script, **AI-generated voice** (ElevenLabs text-to-speech, built once); labelled on the page |
-| Gikuyu | Not included (stretch goal; would need a human speaker) |
+| Gikuyu | **Placeholder manifest only.** Phrase-locked to recorded prompts; no clip has been recorded yet, and none is machine-generated |
 
 Datasets, licences and what they do not cover: [DATA.md](DATA.md). Build log and decisions: [PROGRESS.md](PROGRESS.md).
 Full build spec: [JIRANI_SPEC.md](JIRANI_SPEC.md).

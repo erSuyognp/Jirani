@@ -94,7 +94,19 @@
       "confirm":  { "en": "Ask a person if none of the above fits.", "sw": "Uliza mtu kama hakuna kati ya haya kinachofaa." }
     },
     "context_only":        { "en": "Context only, not from the leaves.", "sw": "Taarifa ya mazingira tu, si kutoka kwa majani." },
-    "context_unavailable": { "en": "Weather and soil context is not available or is out of date.", "sw": "Taarifa ya hali ya hewa na udongo haipo au imepitwa na wakati." }
+    "context_unavailable": { "en": "No fresh rain or soil note.", "sw": "Hakuna taarifa mpya ya mvua au udongo." },
+    "rule_note":           { "en": "Rain and soil are cached estimates, not a second model. They never override a low-confidence leaf.", "sw": "Mvua na udongo ni makadirio yaliyohifadhiwa, si modeli ya pili. Hayabatilishi kamwe jani lenye uhakika mdogo." }
+  },
+
+  "harvest": {
+    "note": "Cherry band from the optional fourth photo. PROTOTYPE colour heuristic, not a trained model. The ticket range and its unit come from the cooperative registry, never from the photo.",
+    "none":       { "en": "No cherry photo. No grade.", "sw": "Hakuna picha ya matunda. Hakuna daraja." },
+    "not_graded": { "en": "Cherry photo not clear. No grade.", "sw": "Picha ya matunda haiko wazi. Hakuna daraja." },
+    "band":       { "en": "Band {band}.", "sw": "Daraja {band}." },
+    "prototype":  { "en": "Prototype grade, not a trained model. Confirm at the factory.", "sw": "Daraja la majaribio, si modeli iliyofunzwa. Thibitisha kiwandani." },
+    "tickets":    { "en": "Last coop tickets {low}–{high} {unit}. Not a price offer.", "sw": "Tiketi za mwisho za chama {low}–{high} {unit}. Si ofa ya bei." },
+    "no_tickets": { "en": "No coop tickets for this band.", "sw": "Hakuna tiketi za chama za daraja hili." },
+    "synthetic":  { "en": "Demo tickets are synthetic, not market prices.", "sw": "Tiketi za maonyesho ni za kubuni, si bei za soko." }
   },
 
   "card": {
@@ -105,7 +117,7 @@
   "officer": {
     "says":   { "en": "The officer looked at your photos: {stress}.", "sw": "Afisa ameangalia picha zako: {stress}." },
     "visit":  { "en": "The officer looked at your photos and will come to see this block.", "sw": "Afisa ameangalia picha zako na atakuja kuona kitalu hiki." },
-    "retake": { "en": "The officer could not see the leaves clearly. Take new photos on white paper and send them again.", "sw": "Afisa hakuweza kuona majani vizuri. Piga picha mpya juu ya karatasi nyeupe uzitume tena." }
+    "retake": { "en": "The officer could not see the leaves clearly. Take new photos on the printed card and send them again.", "sw": "Afisa hakuweza kuona majani vizuri. Piga picha mpya juu ya kadi iliyochapishwa uzitume tena." }
   },
 
   "visit": {
@@ -125,6 +137,15 @@
       "worse":  { "en": "Worse than the last check.",  "sw": "Imezidi kuliko ukaguzi uliopita." },
       "same":   { "en": "Same as the last check.",     "sw": "Sawa na ukaguzi uliopita." },
       "better": { "en": "Better than the last check.", "sw": "Imepungua kuliko ukaguzi uliopita." }
+    },
+    "harvest": {
+      "note": "Spoken band letters, and the ticket range with the amounts as words (filled from the registry by scripts/build_audio.py).",
+      "band": {
+        "A": { "en": "Band A.", "sw": "Daraja A." },
+        "B": { "en": "Band B.", "sw": "Daraja Bi." },
+        "C": { "en": "Band C.", "sw": "Daraja Si." }
+      },
+      "tickets": { "en": "Last coop tickets: {low} to {high} dollars for a fifty kilo bag. Not a price offer.", "sw": "Tiketi za mwisho za chama: dola {low} hadi {high} kwa gunia la kilo hamsini. Si ofa ya bei." }
     }
   },
 
@@ -149,13 +170,15 @@
       "en": "JIRANI: officer visits Block {block} on {date}, {slot}. Until then: do not spray, keep the 3 leaves, check 10 more trees.",
       "sw": "JIRANI: afisa atatembelea Kitalu {block} {date}, {slot}. Hadi hapo: usinyunyizie, weka majani 3, kagua miti 10 zaidi."
     },
+    "harvest":         { "en": " Band {band}.", "sw": " Daraja {band}." },
+    "harvest_tickets": { "en": " Band {band}, tickets {low}-{high} {unit}, no offer.", "sw": " Daraja {band}, tiketi {low}-{high} {unit}, si ofa." },
     "slot": {
       "morning":   { "en": "morning", "sw": "asubuhi" },
       "afternoon": { "en": "afternoon", "sw": "mchana" }
     },
     "officer_retake": {
-      "en": "JIRANI {date} Block {block}: the officer could not see the leaves. Send new photos on white paper.",
-      "sw": "JIRANI {date} Kitalu {block}: afisa hakuona majani vizuri. Tuma picha mpya juu ya karatasi nyeupe."
+      "en": "JIRANI {date} Block {block}: the officer could not see the leaves. Send new photos on the printed card.",
+      "sw": "JIRANI {date} Kitalu {block}: afisa hakuona majani vizuri. Tuma picha mpya juu ya kadi iliyochapishwa."
     },
     "months": {
       "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],

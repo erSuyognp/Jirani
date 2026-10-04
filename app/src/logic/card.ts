@@ -1,7 +1,9 @@
-// Decision Card: exactly the seven slots from the spec. All text is looked up by key; nothing is generated.
+// Decision Card: the seven slots from the spec plus the harvest slot (cherry band and buyer-ticket range).
+// All text is looked up by key; nothing is generated.
 import { CONFIG } from "../config";
 import { type Answers, fill, pick } from "./answers";
 import type { CauseRanking } from "./causes";
+import { type Harvest, harvestSlot, type HarvestSlot, NO_HARVEST } from "./harvest";
 import { confidenceLevel, type ConfidenceLevel } from "./refusal";
 import type { TrendResult } from "./trend";
 import type { Diagnosis, Lang } from "./types";
@@ -25,6 +27,9 @@ export interface Card {
   doNot: string;                     // 5. one thing not to do
   causes: CardLine[];                // 6. likely causes
   contextNote: string | null;
+  ruleNote: string;                  // the causes are rules over cached estimates, said in the slot
+  harvestInput: Harvest;             // band and ticket range, for the SMS and the audio
+  harvest: HarvestSlot;              // harvest slot. Independent of the diagnosis: it never overrides a refusal.
   nextStepKey: "sync" | "ask_person";
   nextStep: string;                  // 7. next step
   draft: string;
@@ -50,6 +55,7 @@ export function buildCard(
   ranking: CauseRanking,
   A: Answers,
   lang: Lang,
+  harvest: Harvest = NO_HARVEST,
 ): Card {
   const confident = dx.kind === "confident";
   const stressKey = confident ? dx.stress : "not_sure";
@@ -95,6 +101,9 @@ export function buildCard(
     doNot: pick(A.do_not[stressKey], lang, `do_not.${stressKey}`),
     causes,
     contextNote: ranking.contextAvailable ? null : pick(A.cause.context_unavailable as never, lang, "cause.context_unavailable"),
+    ruleNote: pick(A.cause.rule_note as never, lang, "cause.rule_note"),
+    harvestInput: harvest,
+    harvest: harvestSlot(harvest, A, lang),
     nextStepKey: confident ? "sync" : "ask_person",
     nextStep: pick(A.next_step[confident ? "sync" : "ask_person"], lang, "next_step"),
     draft: pick(A.card.draft, lang, "card.draft"),
