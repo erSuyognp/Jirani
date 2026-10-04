@@ -179,15 +179,6 @@ the visit queue, the farmer hearing back, and a "Not sure" case. Press **Play al
   node scripts/record_simulation.cjs https://<your-service>.onrender.com/simulation
   ```
 
-### Intro animation (for the demo video)
-`video/intro.html` is a 23-second animated opening: the problem and what Jirani does, in seven shots, drawn in code
-(nothing in it is generated footage). Open the file in a browser to preview it. To render it as an MP4 (Microsoft Edge
-headless encodes the frames, no ffmpeg needed; 1920x1080, 30 fps, no sound, written to `recordings/`):
-```bash
-npm install --no-save --prefix scripts playwright-core mp4-muxer
-node scripts/render_intro.cjs                 # jirani-intro.mp4, captions burnt in
-node scripts/render_intro.cjs --no-captions   # jirani-intro-no-captions.mp4, to caption in a video editor
-```
 
 ### Reproduce the dataset and the model
 1. Download BRACOL from Mendeley Data (CC BY 4.0, DOI 10.17632/yy2k5y8mxg.1) into `ml/data/bracol/` and extract it:
